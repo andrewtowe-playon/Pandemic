@@ -1,5 +1,17 @@
 # Pandemic — Board Game Reference
 
+## Project Context — Hackathon
+
+- **Format:** 4-hour hackathon. Goal is a playable web-based Pandemic (plain HTML/JS/CSS,
+  no TypeScript/build step — a single `index.html` grows into the game).
+- **Team (5):** Ryan Beal (owner of this working copy), Andrew Towe (set up the repo + first
+  commit; the **only** team member who knows the game well — treat him as the rules
+  authority), Abigail Andrews, Tae, and Mike Weiss.
+- **Working style:** work is delegated across the team. Most of the team is **new to
+  Pandemic**, so when writing or reviewing code, it must **align with the official rules** —
+  see `Rules.md` (the authoritative rules reference; correct where this file and it disagree).
+  When a rule is ambiguous, flag it rather than guessing, and prefer Andrew's call.
+
 ## Overview
 
 Pandemic is a cooperative board game for 2–4 players. Players work together as a team of specialists to treat disease outbreaks and discover cures before humanity is overwhelmed. The game is won or lost collectively.
@@ -115,11 +127,12 @@ When a cube would be placed in a city that already has 3 cubes of that color:
 
 ## Infection Rate Track
 
-| Epidemics Drawn | Infection Rate (cards drawn per turn) |
-|-----------------|--------------------------------------|
-| 0–1             | 2                                    |
-| 2–3             | 3                                    |
-| 4–5             | 4                                    |
+The track has 7 spaces with values `2, 2, 2, 3, 3, 4, 4` (left to right). The marker starts
+on the leftmost `2` and advances one space per Epidemic drawn.
+
+| Epidemics Drawn | 0 | 1 | 2 | 3 | 4 | 5 | 6 |
+|-----------------|---|---|---|---|---|---|---|
+| Infection Rate  | 2 | 2 | 2 | 3 | 3 | 4 | 4 |
 
 ---
 
