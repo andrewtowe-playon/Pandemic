@@ -63,10 +63,10 @@ const Controls = {
 
     // Immediate actions: act on the current city right now.
     const IMMEDIATE = [
-      ['Treat',         () => this._doTreat()],
-      ['Build Station', () => this._doBuild()],
-      ['Discover Cure', () => this._doCure()],
-      ['Share',         () => this._doShare()],
+      ['Resolve',       () => this._doTreat()],
+      ['Open Office',   () => this._doBuild()],
+      ['Ship Solution', () => this._doCure()],
+      ['Hand Off',      () => this._doShare()],
     ];
     IMMEDIATE.forEach(([label, fn]) => {
       const b = document.createElement('button');
@@ -117,10 +117,10 @@ const Controls = {
     if (!this._ensureActionable()) return;
     const city = GameState.cities[player.location];
     const present = COLORS.filter(c => city.cubes[c] > 0);
-    if (present.length === 0) return this.toast('No cubes to treat here');
+    if (present.length === 0) return this.toast('No incidents to resolve here');
     if (present.length === 1) return this._act(Rules.treatDisease(player, present[0]));
-    this._showChoice('Treat which color?', present.map(c => ({
-      label: c, color: COLOR_HEX[c],
+    this._showChoice('Resolve which domain?', present.map(c => ({
+      label: THEME.domain(c), color: COLOR_HEX[c],
       onClick: () => this._act(Rules.treatDisease(player, c)),
     })));
   },
@@ -142,13 +142,13 @@ const Controls = {
       byColor[c].length >= needed && GameState.cures[c] === CURE.UNCURED);
 
     if (curable.length === 0)
-      return this.toast(`Need ${needed} same-color city cards at a station`);
+      return this.toast(`Need ${needed} matching tickets at an office`);
 
     const cure = (c) =>
       this._act(Rules.discoverCure(player, c, byColor[c].slice(0, needed)));
     if (curable.length === 1) return cure(curable[0]);
-    this._showChoice('Cure which color?', curable.map(c => ({
-      label: c, color: COLOR_HEX[c], onClick: () => cure(c),
+    this._showChoice('Ship which domain?', curable.map(c => ({
+      label: THEME.domain(c), color: COLOR_HEX[c], onClick: () => cure(c),
     })));
   },
 
@@ -160,7 +160,7 @@ const Controls = {
     if (!this._ensureActionable()) return;
     const city = player.location;
     const others = GameState.players.filter(p => p !== player && p.location === city);
-    if (others.length === 0) return this.toast('No other player in this city');
+    if (others.length === 0) return this.toast('No teammate in this city');
 
     const options = [];
     // GIVE: current player -> another (Researcher may give any city card).
@@ -169,7 +169,7 @@ const Controls = {
         if (card.type !== 'city') return;
         if (player.role === 'Researcher' || card.city === city) {
           options.push({
-            label: `Give ${card.city} → ${other.name}`,
+            label: `Give ${card.city} → ${THEME.roleLabel(other.role)}`,
             onClick: () => this._act(Rules.shareKnowledge(player, other, card)),
           });
         }
@@ -181,15 +181,15 @@ const Controls = {
         if (card.type !== 'city') return;
         if (other.role === 'Researcher' || card.city === city) {
           options.push({
-            label: `Take ${card.city} ← ${other.name}`,
+            label: `Take ${card.city} ← ${THEME.roleLabel(other.role)}`,
             onClick: () => this._act(Rules.shareKnowledge(other, player, card)),
           });
         }
       });
     });
 
-    if (options.length === 0) return this.toast(`No shareable card for ${city}`);
-    this._showChoice('Share knowledge:', options);
+    if (options.length === 0) return this.toast(`No matching ticket to hand off in ${city}`);
+    this._showChoice('Hand off a ticket:', options);
   },
 
   /* ---- shared helpers for the action bar ------------------------------- */
@@ -285,39 +285,36 @@ const Controls = {
   /** Header status bar: whose turn, actions left, infection rate, outbreaks. */
   _renderStatusBar() {
     const player = getCurrentPlayer();
-    this._setText('s-player', player ? player.name : '—');
+    this._setText('s-player', player ? THEME.roleLabel(player.role) : '—');
     this._setText('s-actions',
       GameState.phase === PHASE.ACTIONS ? GameState.actionsRemaining : '—');
     this._setText('s-rate', getInfectionRate());
     this._setText('s-outbreaks', `${GameState.outbreaks} / ${MAX_OUTBREAKS}`);
   },
 
-  /** Current player: name, role (colored) + blurb, and current city. */
+  /** Current player: company role (colored) @ city, plus themed blurb.
+   *  Generic role labels — players are identified by their role, not a name. */
   _renderPlayerInfo() {
     const box = document.getElementById('player-info');
     if (!box) return;
     const player = getCurrentPlayer();
     if (!player) { box.textContent = '—'; return; }
 
-    const role = ROLES[player.role] || { color: '#cce', blurb: '' };
+    const role = ROLES[player.role] || { color: '#cce' };
     box.innerHTML = '';
 
     const name = document.createElement('div');
     name.style.fontSize = '0.95rem';
-    name.innerHTML = `<strong style="color:${role.color}">${player.name}</strong>` +
+    name.innerHTML = `<strong style="color:${role.color}">${THEME.roleLabel(player.role)}</strong>` +
                      ` <span style="color:#889">@ ${player.location}</span>`;
-
-    const roleLine = document.createElement('div');
-    roleLine.style.color = role.color;
-    roleLine.style.margin = '2px 0';
-    roleLine.textContent = player.role;
 
     const blurb = document.createElement('div');
     blurb.style.color = '#889';
     blurb.style.fontSize = '0.72rem';
-    blurb.textContent = role.blurb;
+    blurb.style.marginTop = '2px';
+    blurb.textContent = THEME.roleBlurb(player.role);
 
-    box.append(name, roleLine, blurb);
+    box.append(name, blurb);
   },
 
   /** The current player's hand as color-coded chips. */
@@ -344,8 +341,8 @@ const Controls = {
         chip.style.background = '#2a2050';
         chip.style.color = '#e8d9ff';
         chip.style.cursor = 'pointer';
-        chip.title = 'Click to play this event card';
-        chip.textContent = `★ ${card.name}`;
+        chip.title = 'Click to play this initiative';
+        chip.textContent = `★ ${THEME.eventLabel(card.name)}`;
         chip.addEventListener('click', () => this._startEventPlay(player, card));
       } else {
         chip.style.background = '#333';
@@ -363,27 +360,28 @@ const Controls = {
     }
   },
 
-  /** Per-color cure marker + cubes left in supply. */
+  /** Per-domain solution status + incident capacity left in supply. */
   _renderCureStatus() {
     const box = document.getElementById('cure-status');
     if (!box) return;
     box.innerHTML = '';
-    const badge = {
-      [CURE.UNCURED]:    { txt: 'uncured',    color: '#889' },
-      [CURE.CURED]:      { txt: '✔ cured',    color: '#7f7' },
-      [CURE.ERADICATED]: { txt: '✔✔ eradicated', color: '#7ff' },
+    const badgeColor = {
+      [CURE.UNCURED]:    '#889',
+      [CURE.CURED]:      '#7f7',
+      [CURE.ERADICATED]: '#7ff',
     };
     COLORS.forEach(color => {
       const state = GameState.cures[color];
-      const b = badge[state] || badge[CURE.UNCURED];
       const row = document.createElement('div');
       row.style.cssText = 'display:flex;align-items:center;gap:6px;margin:2px 0;';
       row.innerHTML =
         `<span style="width:10px;height:10px;border-radius:2px;` +
         `background:${COLOR_HEX[color]};display:inline-block;"></span>` +
-        `<span style="color:${b.color};min-width:80px;">${b.txt}</span>` +
+        `<span style="color:#cce;min-width:64px;font-size:0.72rem;">${THEME.domain(color)}</span>` +
+        `<span style="color:${badgeColor[state] || badgeColor[CURE.UNCURED]};min-width:74px;">` +
+        `${THEME.cure(state)}</span>` +
         `<span style="color:#667;font-size:0.7rem;">` +
-        `${GameState.cubesRemaining[color]} cubes left</span>`;
+        `${GameState.cubesRemaining[color]} left</span>`;
       box.appendChild(row);
     });
   },
@@ -487,7 +485,7 @@ const Controls = {
     const over = player.hand.length - HAND_LIMIT;
     const options = player.hand.map(card => ({
       label: card.type === 'city' ? card.city
-           : card.type === 'event' ? `★ ${card.name}` : card.type,
+           : card.type === 'event' ? `★ ${THEME.eventLabel(card.name)}` : card.type,
       sublabel: card.type === 'city' ? card.color : card.type,
       onClick: () => {
         Rules.discardCard(player, card);
@@ -517,20 +515,18 @@ const Controls = {
     box.innerHTML = '';
 
     const title = document.createElement('h1');
-    title.textContent = won ? 'VICTORY' : 'DEFEAT';
+    title.textContent = won ? THEME.endgame.winTitle : THEME.endgame.loseTitle;
     title.style.cssText =
       `letter-spacing:5px;margin-bottom:12px;color:${won ? '#7f7' : '#f66'};` +
       `text-shadow:0 0 16px ${won ? '#4f4' : '#f44'};`;
 
     const msg = document.createElement('p');
     msg.style.cssText = 'color:#cce;margin-bottom:6px;font-size:0.95rem;';
-    msg.textContent = won
-      ? 'All four diseases cured — humanity is saved!'
-      : this._lossReason();
+    msg.textContent = won ? THEME.endgame.winMsg : this._lossReason();
 
     const sub = document.createElement('p');
     sub.style.cssText = 'color:#889;font-size:0.78rem;margin-bottom:20px;';
-    sub.textContent = won ? 'Great teamwork.' : 'Better luck next outbreak.';
+    sub.textContent = won ? THEME.endgame.winSub : THEME.endgame.loseSub;
 
     const btn = document.createElement('button');
     btn.textContent = 'New Game';
@@ -546,12 +542,12 @@ const Controls = {
   /** Best-effort human reason for a loss (state carries no explicit cause). */
   _lossReason() {
     if (GameState.outbreaks >= MAX_OUTBREAKS)
-      return `${MAX_OUTBREAKS} outbreaks devastated the world.`;
+      return `${MAX_OUTBREAKS} escalations sank the company.`;
     const out = COLORS.find(c => GameState.cubesRemaining[c] <= 0);
-    if (out) return `Ran out of ${out} disease cubes.`;
+    if (out) return `Ran out of capacity — ${THEME.domain(out)} fires spread unchecked.`;
     if (GameState.playerDeck.length === 0)
-      return 'The player deck ran out of cards.';
-    return 'The world was overwhelmed.';
+      return 'The backlog ran dry — the team burned out.';
+    return 'The company was overwhelmed.';
   },
 
   /* ---- event card UI --------------------------------------------------- */
@@ -564,16 +560,16 @@ const Controls = {
     switch (card.name) {
 
       case 'One Quiet Night':
-        this._showChoice(`Play "One Quiet Night"?`, [{
-          label: 'Confirm — skip next infect phase',
+        this._showChoice(`Declare a "${THEME.eventLabel(card.name)}"?`, [{
+          label: 'Confirm — skip the next incident wave',
           onClick: () => this._actEvent(Rules.playEvent(player, card.name, {})),
         }]);
         break;
 
       case 'Government Grant': {
         const cities = Object.keys(CITIES).filter(c => !GameState.cities[c].station);
-        if (!cities.length) return this.toast('All cities already have research stations');
-        this._showChoice('Government Grant: choose city for new research station',
+        if (!cities.length) return this.toast('Every city already has an office');
+        this._showChoice(`${THEME.eventLabel(card.name)}: open an office in`,
           cities.map(c => ({
             label: c,
             onClick: () => this._actEvent(Rules.playEvent(player, card.name, { city: c })),
@@ -583,14 +579,14 @@ const Controls = {
       }
 
       case 'Airlift': {
-        // Step 1: pick a player to move.
-        this._showChoice('Airlift: choose a player to move',
+        // Step 1: pick a person to move.
+        this._showChoice(`${THEME.eventLabel(card.name)}: who moves?`,
           GameState.players.map(p => ({
-            label: `${p.name} (${p.role}) @ ${p.location}`,
+            label: `${THEME.roleLabel(p.role)} @ ${p.location}`,
             onClick: () => {
               // Step 2: pick destination city.
               const dests = Object.keys(CITIES).filter(c => c !== p.location);
-              this._showChoice(`Airlift ${p.name}: choose destination`,
+              this._showChoice(`Move ${THEME.roleLabel(p.role)} to`,
                 dests.map(c => ({
                   label: c,
                   onClick: () => this._actEvent(
@@ -606,8 +602,8 @@ const Controls = {
 
       case 'Resilient Population': {
         const discardCities = [...new Set(GameState.infectionDiscard.map(c => c.city))];
-        if (!discardCities.length) return this.toast('Infection discard pile is empty');
-        this._showChoice('Resilient Population: permanently remove which city from infection discard?',
+        if (!discardCities.length) return this.toast('No resolved incidents to close out');
+        this._showChoice(`${THEME.eventLabel(card.name)}: close out which incident for good?`,
           discardCities.map(c => ({
             label: c,
             onClick: () => this._actEvent(Rules.playEvent(player, card.name, { city: c })),
@@ -618,8 +614,8 @@ const Controls = {
 
       case 'Forecast': {
         const count = Math.min(6, GameState.infectionDeck.length);
-        if (!count) return this.toast('Infection deck is empty');
-        // Let user click infection cards in desired new order (top first).
+        if (!count) return this.toast('The incident queue is empty');
+        // Let user click incidents in desired new order (top first).
         const chosen = [];
         const remaining = GameState.infectionDeck.slice(0, count);
         const pickNext = () => {
@@ -628,9 +624,9 @@ const Controls = {
             return;
           }
           this._showChoice(
-            `Forecast: pick card #${chosen.length + 1} of ${count} (will be next drawn)`,
+            `${THEME.eventLabel(card.name)}: pick incident #${chosen.length + 1} of ${count} (hits next)`,
             remaining.map((c, i) => ({
-              label: `${c.city} (${c.color})`,
+              label: `${c.city} (${THEME.domain(c.color)})`,
               onClick: () => { chosen.push(c); remaining.splice(i, 1); pickNext(); },
             }))
           );
@@ -640,7 +636,7 @@ const Controls = {
       }
 
       default:
-        this.toast(`No UI for event: ${card.name}`);
+        this.toast(`No UI for initiative: ${THEME.eventLabel(card.name)}`);
     }
   },
 

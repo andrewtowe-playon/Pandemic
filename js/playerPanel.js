@@ -28,8 +28,9 @@ const PlayerPanel = {
       // Name + location
       const header = document.createElement('div');
       header.style.cssText = 'display:flex; justify-content:space-between; align-items:baseline; margin-bottom:3px;';
+      const roleLabel = window.THEME ? THEME.roleLabel(player.role) : player.role;
       header.innerHTML =
-        `<span style="font-size:0.8rem;font-weight:bold;color:${role.color}">${player.name}</span>` +
+        `<span style="font-size:0.8rem;font-weight:bold;color:${role.color}">${roleLabel}</span>` +
         `<span style="font-size:0.7rem;color:#889">📍 ${player.location}</span>`;
 
       // Hand chips
@@ -51,7 +52,7 @@ const PlayerPanel = {
           } else if (card.type === 'event') {
             chip.style.background = '#2a2050';
             chip.style.color = '#e8d9ff';
-            chip.textContent = `★ ${card.name}`;
+            chip.textContent = `★ ${window.THEME ? THEME.eventLabel(card.name) : card.name}`;
           } else {
             chip.style.background = '#333';
             chip.style.color = '#fa0';

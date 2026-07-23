@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Pandemic</title>
+  <title>PlayOn: Outage Season</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -191,12 +191,12 @@
 <body>
 
   <header>
-    <h1>PANDEMIC</h1>
+    <h1>OUTAGE SEASON</h1>
     <div id="status-bar">
-      <span>Turn: <strong id="s-player">—</strong></span>
+      <span>On deck: <strong id="s-player">—</strong></span>
       <span>Actions: <strong id="s-actions">—</strong></span>
-      <span>Infection rate: <strong id="s-rate">—</strong></span>
-      <span>Outbreaks: <strong id="s-outbreaks">—</strong></span>
+      <span>Alert volume: <strong id="s-rate">—</strong></span>
+      <span>Escalations: <strong id="s-outbreaks">—</strong></span>
     </div>
     <a id="new-game-btn" href="setup.html" style="margin-left:auto;color:#6af;font-size:0.8rem;text-decoration:none;border:1px solid #335;border-radius:4px;padding:4px 10px;">＋ New Game</a>
   </header>
@@ -212,26 +212,26 @@
 
     <!-- SIDEBAR (owner: Mike / controls.js) -->
     <aside id="sidebar">
-      <h2>CURRENT PLAYER</h2>
+      <h2>ON DECK</h2>
       <div id="player-info">—</div>
 
       <h2>ACTIONS</h2>
       <div id="action-buttons"><!-- Controls.init() populates --></div>
 
-      <h2>HAND</h2>
+      <h2>ASSIGNMENTS</h2>
       <div id="hand"></div>
 
       <h2>TURN</h2>
       <div id="turn-buttons"><!-- Draw / End turn --></div>
 
-      <h2>DISEASES</h2>
+      <h2>SOLUTIONS</h2>
       <div id="cure-status"></div>
 
-      <h2>LOG</h2>
+      <h2>ACTIVITY</h2>
       <div id="log"></div>
 
       <!-- ALL PLAYERS OVERVIEW -->
-      <h2>ALL PLAYERS</h2>
+      <h2>THE TEAM</h2>
       <div id="all-players-panel"></div>
 
       <!-- DEV CONSOLE -->
@@ -257,6 +257,7 @@
 
   <!-- Load order matters: state first, then leaf modules, then game orchestrator. -->
   <script src="js/state.js"></script>
+  <script src="js/theme.js"></script>
   <script src="js/cards.js"></script>
   <script src="js/rules.js"></script>
   <script src="js/render.js"></script>
