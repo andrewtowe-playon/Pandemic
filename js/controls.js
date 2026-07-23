@@ -339,7 +339,10 @@ const Controls = {
       } else if (card.type === 'event') {
         chip.style.background = '#2a2050';
         chip.style.color = '#e8d9ff';
+        chip.style.cursor = 'pointer';
+        chip.title = 'Click to play this event card';
         chip.textContent = `★ ${card.name}`;
+        chip.addEventListener('click', () => this._startEventPlay(player, card));
       } else {
         chip.style.background = '#333';
         chip.textContent = card.type;
@@ -450,6 +453,103 @@ const Controls = {
     if (GameState.playerDeck.length === 0)
       return 'The player deck ran out of cards.';
     return 'The world was overwhelmed.';
+  },
+
+  /* ---- event card UI --------------------------------------------------- */
+
+  /** Entry point when the player clicks an event card chip.
+   *  Event cards cost no action and can be played anytime (not over yet). */
+  _startEventPlay(player, card) {
+    if (GameState.phase === PHASE.WON || GameState.phase === PHASE.LOST) return;
+
+    switch (card.name) {
+
+      case 'One Quiet Night':
+        this._showChoice(`Play "One Quiet Night"?`, [{
+          label: 'Confirm — skip next infect phase',
+          onClick: () => this._actEvent(Rules.playEvent(player, card.name, {})),
+        }]);
+        break;
+
+      case 'Government Grant': {
+        const cities = Object.keys(CITIES).filter(c => !GameState.cities[c].station);
+        if (!cities.length) return this.toast('All cities already have research stations');
+        this._showChoice('Government Grant: choose city for new research station',
+          cities.map(c => ({
+            label: c,
+            onClick: () => this._actEvent(Rules.playEvent(player, card.name, { city: c })),
+          }))
+        );
+        break;
+      }
+
+      case 'Airlift': {
+        // Step 1: pick a player to move.
+        this._showChoice('Airlift: choose a player to move',
+          GameState.players.map(p => ({
+            label: `${p.name} (${p.role}) @ ${p.location}`,
+            onClick: () => {
+              // Step 2: pick destination city.
+              const dests = Object.keys(CITIES).filter(c => c !== p.location);
+              this._showChoice(`Airlift ${p.name}: choose destination`,
+                dests.map(c => ({
+                  label: c,
+                  onClick: () => this._actEvent(
+                    Rules.playEvent(player, card.name, { playerId: p.id, toCity: c })
+                  ),
+                }))
+              );
+            },
+          }))
+        );
+        break;
+      }
+
+      case 'Resilient Population': {
+        const discardCities = [...new Set(GameState.infectionDiscard.map(c => c.city))];
+        if (!discardCities.length) return this.toast('Infection discard pile is empty');
+        this._showChoice('Resilient Population: permanently remove which city from infection discard?',
+          discardCities.map(c => ({
+            label: c,
+            onClick: () => this._actEvent(Rules.playEvent(player, card.name, { city: c })),
+          }))
+        );
+        break;
+      }
+
+      case 'Forecast': {
+        const count = Math.min(6, GameState.infectionDeck.length);
+        if (!count) return this.toast('Infection deck is empty');
+        // Let user click infection cards in desired new order (top first).
+        const chosen = [];
+        const remaining = GameState.infectionDeck.slice(0, count);
+        const pickNext = () => {
+          if (!remaining.length) {
+            this._actEvent(Rules.playEvent(player, card.name, { newOrder: chosen }));
+            return;
+          }
+          this._showChoice(
+            `Forecast: pick card #${chosen.length + 1} of ${count} (will be next drawn)`,
+            remaining.map((c, i) => ({
+              label: `${c.city} (${c.color})`,
+              onClick: () => { chosen.push(c); remaining.splice(i, 1); pickNext(); },
+            }))
+          );
+        };
+        pickNext();
+        break;
+      }
+
+      default:
+        this.toast(`No UI for event: ${card.name}`);
+    }
+  },
+
+  /** After a playEvent call: toast on failure or re-render on success. */
+  _actEvent(result) {
+    if (result && !result.ok) { this.toast(result.reason); return; }
+    this._clearChoice();
+    Render.render();
   },
 
   /* ---- toast (ported from original index.html) ------------------------- */

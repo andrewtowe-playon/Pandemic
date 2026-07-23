@@ -23,8 +23,8 @@ end-game modal all work. What's left is **UI plumbing** in `controls.js`:
 | Status | Item | File / Owner | Tracked |
 |---|---|---|---|
 | ✅ Done | Pawns drawn on the board (`renderPawns`) | `render.js` / Abigail | — |
+| ✅ Done | Event cards playable — click chip to play | `controls.js` / Andrew | — |
 | 🔴 Open (P0) | 7-card hand limit not enforced — no discard prompt | `controls.js` / Mike | `tasks/open/hand-limit-discard-ui.md` |
-| 🔴 Open (P0) | Event cards unplayable — no UI affordance | `controls.js` / Mike | `tasks/open/event-card-play-ui.md` |
 | 🟡 Nice-to-have | Role-action buttons (Ops Expert / Dispatcher / Contingency) | `controls.js` / Mike | not filed — `rules.js` has the logic; wiring only |
 
 The two P0s are the gap between "technically complete" and "feels like real Pandemic."
