@@ -39,6 +39,43 @@ const Controls = {
    * ACTION BAR  (built once in init; state refreshed each render)
    * ==================================================================== */
 
+  /** Inline SVG icons (no external dependency — renders offline). Keyed by the
+   *  glyph name passed to _makePill; each is a 24x24 path using currentColor. */
+  _ICONS: {
+    // Drive/Ferry — navigation arrow (movement)
+    nav:      '<path d="M3 11l18-8-8 18-2-8-8-2z"/>',
+    // Direct Flight — upright plane
+    plane:    '<path d="M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/>',
+    // Charter Flight — paper plane (fly anywhere)
+    send:     '<path d="M2 21l20-9L2 3v7l14 2-14 2z"/>',
+    // Shuttle Flight — bus/shuttle between stations
+    bus:      '<path d="M4 5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v11h-1.2a2.5 2.5 0 0 1-4.6 0H8.8a2.5 2.5 0 0 1-4.6 0H4V5zm2 1v5h12V6H6z"/>',
+    // Treat — medical plus
+    plus:     '<path d="M13 3h-2v8H3v2h8v8h2v-8h8v-2h-8z"/>',
+    // Build Station — building
+    building: '<path d="M4 21V6l8-3 8 3v15h-5v-5h-6v5H4zm3-9h3v-2H7v2zm7 0h3v-2h-3v2zm-7 4h3v-2H7v2zm7 0h3v-2h-3v2z"/>',
+    // Discover Cure — flask
+    flask:    '<path d="M9 3h6v2h-1v4.6l4.6 8A2 2 0 0 1 16.8 21H7.2a2 2 0 0 1-1.8-3.4L10 9.6V5H9V3z"/>',
+    // Share — exchange arrows
+    exchange: '<path d="M7 7h9V4l5 5-5 5v-3H7V7zm10 10H8v3l-5-5 5-5v3h9v4z"/>',
+    // Retrieve Event — download into tray
+    download: '<path d="M11 3h2v7h3l-4 4-4-4h3V3zM5 18h14v2H5z"/>',
+  },
+
+  /** Build a fixed-size action pill: inline-SVG icon on top, label below. */
+  _makePill(iconKey, label) {
+    const b = document.createElement('button');
+    const icon = document.createElement('span');
+    icon.className = 'pill-icon';
+    icon.setAttribute('aria-hidden', 'true');
+    icon.innerHTML = `<svg viewBox="0 0 24 24" fill="currentColor">${this._ICONS[iconKey] || ''}</svg>`;
+    const span = document.createElement('span');
+    span.className = 'pill-label';
+    span.textContent = label;
+    b.append(icon, span);
+    return b;
+  },
+
   /** Movement actions: set pendingAction; the next city click resolves them. */
   _buildActionButtons() {
     const container = document.getElementById('action-buttons');
@@ -47,15 +84,14 @@ const Controls = {
     this._moveButtons = {};
 
     const MOVES = [
-      ['drive',         'Drive/Ferry'],
-      ['directFlight',  'Direct Flight'],
-      ['charterFlight', 'Charter Flight'],
-      ['shuttleFlight', 'Shuttle Flight'],
+      ['drive',         'Drive/Ferry',    'nav'],
+      ['directFlight',  'Direct Flight',  'plane'],
+      ['charterFlight', 'Charter Flight', 'send'],
+      ['shuttleFlight', 'Shuttle Flight', 'bus'],
     ];
-    MOVES.forEach(([key, label]) => {
-      const b = document.createElement('button');
-      b.textContent = label;
-      b.title = 'Then click a destination city';
+    MOVES.forEach(([key, label, icon]) => {
+      const b = this._makePill(icon, label);
+      b.title = `${label} — then click a destination city`;
       b.addEventListener('click', () => this._setPending(key, label));
       container.appendChild(b);
       this._moveButtons[key] = b;
@@ -63,21 +99,20 @@ const Controls = {
 
     // Immediate actions: act on the current city right now.
     const IMMEDIATE = [
-      ['Treat',         () => this._doTreat()],
-      ['Build Station', () => this._doBuild()],
-      ['Discover Cure', () => this._doCure()],
-      ['Share',         () => this._doShare()],
+      ['Treat',         'plus',     () => this._doTreat()],
+      ['Build Station', 'building', () => this._doBuild()],
+      ['Discover Cure', 'flask',    () => this._doCure()],
+      ['Share',         'exchange', () => this._doShare()],
     ];
-    IMMEDIATE.forEach(([label, fn]) => {
-      const b = document.createElement('button');
-      b.textContent = label;
+    IMMEDIATE.forEach(([label, icon, fn]) => {
+      const b = this._makePill(icon, label);
+      b.title = label;
       b.addEventListener('click', fn);
       container.appendChild(b);
     });
 
     // Contingency Planner role button (hidden for other roles).
-    const cpBtn = document.createElement('button');
-    cpBtn.textContent = 'Retrieve Event';
+    const cpBtn = this._makePill('download', 'Retrieve Event');
     cpBtn.title = 'Contingency Planner: take an event from the discard pile (1 action)';
     cpBtn.style.display = 'none';
     cpBtn.addEventListener('click', () => this._doRetrieve());
