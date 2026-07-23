@@ -28,7 +28,7 @@ end-game modal all work. What's left is **UI plumbing** in `controls.js`:
 | ✅ Done | Turn-end summary popup (player cards + infection cards drawn) | `game.js`+`controls.js` / Andrew | `56ea50b` |
 | ✅ Done | All-players panel populates on load | `playerPanel.js` / Andrew | `e89b831` |
 | 🔴 Open (P0) | 7-card hand limit not enforced — no discard prompt | `controls.js` / **Tae** (was Mike) | `tasks/open/hand-limit-discard-ui.md` |
-| 🟡 Nice-to-have | Role-action buttons (Ops Expert / Dispatcher) | `controls.js` / Mike | not filed — `rules.js` has the logic; wiring only |
+| ✅ Done | Role-action buttons (Ops Expert Move + Dispatcher pawn-to-pawn) | `controls.js` / Andrew | `7b158c1` |
 
 The remaining P0 is the gap between "technically complete" and "feels like real Pandemic."
 Keep this table updated as cards close.
