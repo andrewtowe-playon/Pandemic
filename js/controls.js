@@ -75,6 +75,15 @@ const Controls = {
       container.appendChild(b);
     });
 
+    // Contingency Planner role button (hidden for other roles).
+    const cpBtn = document.createElement('button');
+    cpBtn.textContent = 'Retrieve Event';
+    cpBtn.title = 'Contingency Planner: take an event from the discard pile (1 action)';
+    cpBtn.style.display = 'none';
+    cpBtn.addEventListener('click', () => this._doRetrieve());
+    container.appendChild(cpBtn);
+    this._cpBtn = cpBtn;
+
     // Contextual sub-choice row (e.g. "treat which color?").
     const choice = document.createElement('div');
     choice.id = 'action-choice';
@@ -149,6 +158,22 @@ const Controls = {
     if (curable.length === 1) return cure(curable[0]);
     this._showChoice('Cure which color?', curable.map(c => ({
       label: c, color: COLOR_HEX[c], onClick: () => cure(c),
+    })));
+  },
+
+  /** Contingency Planner: pick an event card from the player discard to store. */
+  _doRetrieve() {
+    const player = getCurrentPlayer();
+    if (!this._ensureActionable()) return;
+    if (player.role !== 'Contingency Planner')
+      return this.toast('Only the Contingency Planner can retrieve events');
+    if (player.storedEvent)
+      return this.toast('Already storing an event card — play it first');
+    const events = GameState.playerDiscard.filter(c => c.type === 'event');
+    if (!events.length) return this.toast('No event cards in the player discard pile');
+    this._showChoice('Retrieve which event card?', events.map(e => ({
+      label: `★ ${e.name}`,
+      onClick: () => this._act(Rules.contingencyRetrieve(player, e.name)),
     })));
   },
 
@@ -246,11 +271,18 @@ const Controls = {
   _refreshActionButtons() {
     const inActions = GameState.phase === PHASE.ACTIONS;
     const canAct = inActions && GameState.actionsRemaining > 0;
+    const player = getCurrentPlayer();
 
     if (this._moveButtons) {
       Object.keys(this._moveButtons).forEach(key => {
         this._moveButtons[key].classList.toggle('active', key === this.pendingAction);
       });
+    }
+
+    // Show Retrieve Event only for the Contingency Planner.
+    if (this._cpBtn) {
+      const isCP = player && player.role === 'Contingency Planner';
+      this._cpBtn.style.display = isCP ? '' : 'none';
     }
 
     const container = document.getElementById('action-buttons');
@@ -349,6 +381,20 @@ const Controls = {
       }
       box.appendChild(chip);
     });
+
+    // Contingency Planner stored event (lives on the role card, not in hand).
+    if (player.role === 'Contingency Planner' && player.storedEvent) {
+      const stored = player.storedEvent;
+      const chip = document.createElement('span');
+      chip.style.cssText =
+        'display:inline-block;margin:2px;padding:3px 7px;border-radius:4px;' +
+        'font-size:0.72rem;border:2px solid #ab47bc;background:#1a0a2a;color:#e8d9ff;' +
+        'cursor:pointer;';
+      chip.title = 'Stored event (Contingency Planner) — click to play';
+      chip.textContent = `★ ${stored.name} [stored]`;
+      chip.addEventListener('click', () => this._startEventPlay(player, stored));
+      box.appendChild(chip);
+    }
 
     // hand-limit hint
     if (player.hand.length > HAND_LIMIT) {
