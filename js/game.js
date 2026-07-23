@@ -9,14 +9,28 @@
 
 const Game = {
 
-  /** Entry point — called on DOMContentLoaded (see bottom of file). */
+  /** Entry point — called on DOMContentLoaded (see bottom of file).
+   *  Reads the setup screen's settings from localStorage (written by setup.html).
+   *  If none exist, redirect to the setup screen. */
   boot() {
     Render.init();
     Controls.init();
-    // TODO(Ryan): show the setup screen (player count / difficulty / role deal).
-    // For quick testing you can call Game.newGame({numPlayers:2, difficulty:'introductory',
-    //   roles:['Medic','Scientist'], names:['P1','P2']}) directly.
-    Render.render();
+
+    let settings = null;
+    try { settings = JSON.parse(localStorage.getItem('pandemicSettings')); }
+    catch (e) { settings = null; }
+
+    const ok = settings && Array.isArray(settings.players) && settings.players.length > 0;
+    if (!ok) { window.location.replace('setup.html'); return; }
+
+    // setup.html stores difficulty capitalized ("Introductory"); our constants
+    // are lowercase. numPlayers falls back to the players array length.
+    this.newGame({
+      numPlayers: settings.numPlayers || settings.players.length,
+      difficulty: String(settings.difficulty || 'standard').toLowerCase(),
+      roles: settings.players.map(p => p.role),
+      names: settings.players.map(p => p.name),
+    });
   },
 
   /**
