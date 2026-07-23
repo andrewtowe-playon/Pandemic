@@ -4,6 +4,14 @@
 no build step. **All game logic must match [`Rules.md`](Rules.md).** When a rule is
 ambiguous, ask Andrew (rules authority) rather than guessing.
 
+## Handoffs — the `tasks/` queue
+
+Cross-teammate work (bugs found in someone else's file, follow-ups, "someone please…")
+goes in [`tasks/`](tasks/) as one card per file. State is the directory
+(`open/` → `working/` → `done/`); move a card with `git mv`. Cards can be filed
+**unassigned** and routed later — see [`tasks/README.md`](tasks/README.md) for the format
+and assignment flow. Board at a glance: `ls tasks/open tasks/working tasks/done`.
+
 ## The one architectural rule
 
 **One-way data flow:**
