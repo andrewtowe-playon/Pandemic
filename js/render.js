@@ -70,7 +70,16 @@ const Render = {
       const cubes = document.createElement('div');
       cubes.className = 'cube-holder';
 
-      node.append(dot, cubes, label);
+      // station holder — renderStations() fills this each redraw. Sits to the
+      // right of the dot, clear of cubes (above) and label (below).
+      const station = document.createElement('div');
+      station.className = 'station-holder';
+      station.style.cssText =
+        'position:absolute; left:calc(100% + 1px); top:50%; transform:translateY(-50%);' +
+        'font-size:18px; font-weight:bold; color:#fff; text-shadow:0 0 4px #000,0 0 3px #000,0 0 2px #000; line-height:1;' +
+        'pointer-events:none;';
+
+      node.append(dot, cubes, station, label);
       node.addEventListener('click', () => {
         if (window.Controls && Controls.onCityClick) Controls.onCityClick(name);
       });
@@ -99,8 +108,12 @@ const Render = {
 
   /** Draw a station marker on cities where station===true. */
   renderStations() {
-    // TODO(Abigail): mark research-station cities (e.g. a small house/□ glyph on
-    // the city node). Use getStations() or GameState.cities[name].station.
+    Object.entries(GameState.cities).forEach(([name, cityState]) => {
+      const holder = this.citiesLayer.querySelector(
+        `.city-node[data-city="${CSS.escape(name)}"] .station-holder`);
+      if (!holder) return;
+      holder.textContent = cityState.station ? '⌂' : ''; // ⌂ house glyph
+    });
   },
 
   /** Draw one pawn per player at their location (offset when co-located). */
