@@ -1,0 +1,19 @@
+name: Tests
+
+# Run the regression harness on every push to main and on every PR.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      # No dependencies to install — the harness is pure Node.
+      - name: Run tests
+        run: npm test
