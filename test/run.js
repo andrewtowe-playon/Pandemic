@@ -7,6 +7,7 @@
 const { runEngineTests } = require('./engine.test');
 const { runRulesAuditTests } = require('./rules-audit.test');
 const { runPlaythroughTests } = require('./playthrough.test');
+const { runPathsTests } = require('./paths.test');
 const { runAutoplay } = require('./autoplay');
 
 function report(title, results, note) {
@@ -27,6 +28,7 @@ try {
   totalFailed += report('Rules audit regressions', runRulesAuditTests());
   const pt = runPlaythroughTests();
   totalFailed += report('End-to-end playthrough', pt.results, pt.note);
+  totalFailed += report('Paths (win / movement / events / conservation / modals)', runPathsTests());
   const auto = runAutoplay(25);
   totalFailed += report('Autoplay continuity', auto.results, auto.note);
 } catch (e) {

@@ -5,9 +5,9 @@
  * game state. The single entry point is Render.render(), called after any state
  * change. Redraw-everything is fine (board is small; this keeps coupling low).
  *
- * Ported from the original index.html so the map/cities/connections already
- * work. TODO markers show what still needs GameState wired in
- * (cubes, stations, multi-pawn, markers).
+ * Renders cities/connections, disease cubes, research stations, pawns, the
+ * infection-rate & outbreak markers, cure markers, and per-pile card counts —
+ * all read from GameState.
  *
  * Click handling: city clicks call Controls.onCityClick(name) (see controls.js),
  * so the view stays free of game logic.

@@ -28,3 +28,7 @@ Note:   The hook already exists — game.js (endActionsPhase) calls
           2. When legal, call `Game.runInfectPhase()` to resume the turn.
         Also enforce after Share Knowledge pushes the receiver over 7 (rules.js already logs
         a warning there). Discovered in the 2026-07-23 browser playtest.
+
+DONE (2026-07-23): Tae implemented `promptDiscard` in controls.js (modal hand picker that
+re-prompts until ≤7, then resumes the turn). Also handles the post-Share overflow. Moved to
+done/ during the audit cleanup; covered by test/paths.test.js (real-modal render path).
