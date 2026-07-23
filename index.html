@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pandemic — Interactive Board</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #060614;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      font-family: 'Segoe UI', Consolas, monospace;
+      color: #cce;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      padding: 8px 20px;
+      width: 100%;
+      background: rgba(0,0,30,0.8);
+      border-bottom: 1px solid #224;
+    }
+
+    header h1 {
+      font-size: 1.3rem;
+      letter-spacing: 4px;
+      color: #6af;
+      text-shadow: 0 0 12px #4af;
+    }
+
+    #info-panel {
+      display: flex;
+      gap: 20px;
+      font-size: 0.82rem;
+      flex-wrap: wrap;
+    }
+
+    #info-panel span { color: #aab; }
+    #info-panel strong { color: gold; font-weight: normal; }
+    #valid-moves-list { color: #5bf; }
+
+    #transpacific-note {
+      margin-left: auto;
+      font-size: 0.75rem;
+      color: #668;
+      font-style: italic;
+    }
+
+    #board-container {
+      position: relative;
+      width: 98vw;
+      max-width: 1400px;
+      margin: 6px 0;
+    }
+
+    #board-img {
+      display: block;
+      width: 100%;
+      height: auto;
+      user-select: none;
+      -webkit-user-drag: none;
+    }
+
+    #svg-overlay {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      pointer-events: none;
+      overflow: visible;
+    }
+
+    .conn-normal {
+      stroke: rgba(255,255,255,0.18);
+      stroke-width: 0.8;
+      fill: none;
+    }
+
+    .conn-active {
+      stroke: rgba(255,220,50,0.55);
+      stroke-width: 1.5;
+      fill: none;
+    }
+
+    #cities-layer {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      pointer-events: none;
+    }
+
+    .city-node {
+      position: absolute;
+      transform: translate(-50%, -50%);
+      cursor: default;
+      pointer-events: all;
+      z-index: 5;
+    }
+
+    .city-node .dot {
+      width: 13px;
+      height: 13px;
+      border-radius: 50%;
+      border: 2px solid rgba(255,255,255,0.4);
+      transition: transform 0.12s, box-shadow 0.12s;
+    }
+
+    .city-node .label {
+      position: absolute;
+      left: 50%;
+      top: calc(100% + 2px);
+      transform: translateX(-50%);
+      white-space: nowrap;
+      font-size: 7.5px;
+      color: rgba(255,255,255,0.8);
+      text-shadow: 0 0 4px #000, 0 0 2px #000;
+      pointer-events: none;
+      line-height: 1;
+    }
+
+    /* State: current city */
+    .city-node.current .dot {
+      border-color: gold;
+      box-shadow: 0 0 10px gold, 0 0 4px #ffa;
+      transform: scale(1.2);
+    }
+
+    /* State: valid move */
+    .city-node.valid-move {
+      cursor: pointer;
+    }
+    .city-node.valid-move .dot {
+      border-color: #fff;
+      animation: pulse 0.85s ease-in-out infinite alternate;
+    }
+    .city-node.valid-move:hover .dot {
+      transform: scale(1.5);
+      box-shadow: 0 0 14px #fff;
+    }
+
+    /* State: invalid (clickable but blocked) */
+    .city-node.invalid {
+      cursor: not-allowed;
+    }
+
+    @keyframes pulse {
+      from { box-shadow: 0 0 3px rgba(255,255,255,0.4); }
+      to   { box-shadow: 0 0 14px rgba(255,255,255,0.95); transform: scale(1.25); }
+    }
+
+    #token {
+      position: absolute;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 38% 35%, #fffde7, #e0c000 60%, #8a7000);
+      border: 2.5px solid #fff8;
+      box-shadow: 0 0 14px gold, 0 0 6px orange, 0 2px 6px rgba(0,0,0,0.6);
+      transform: translate(-50%, -50%);
+      transition: left 0.35s cubic-bezier(0.34, 1.56, 0.64, 1),
+                  top  0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+      pointer-events: none;
+      z-index: 20;
+    }
+
+    #toast {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(200,40,40,0.9);
+      color: white;
+      padding: 6px 18px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      opacity: 0;
+      transition: opacity 0.3s;
+      pointer-events: none;
+      z-index: 100;
+    }
+    #toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>PANDEMIC</h1>
+    <div id="info-panel">
+      <span>Location: <strong id="current-city">Atlanta</strong></span>
+      <span>Move to: <span id="valid-moves-list">—</span></span>
+    </div>
+    <div id="transpacific-note">* Trans-Pacific: SF ↔ Tokyo, SF ↔ Manila, LA ↔ Sydney</div>
+  </header>
+
+  <div id="board-container">
+    <img id="board-img" src="Board.webp" alt="Pandemic Board" draggable="false">
+    <svg id="svg-overlay" viewBox="0 0 100 100" preserveAspectRatio="none"></svg>
+    <div id="cities-layer"></div>
+    <div id="token"></div>
+  </div>
+
+  <div id="toast">Not a connected city</div>
+
+  <script>
+    // ── City definitions: x/y as % of board image width/height ─────────────
+    const CITIES = {
+      // Blue — North America
+      "San Francisco":    { x:  7.5, y: 37.5, color: "#3399ff" },
+      "Chicago":          { x: 14.0, y: 30.0, color: "#3399ff" },
+      "Atlanta":          { x: 16.0, y: 41.0, color: "#3399ff" },
+      "Montreal":         { x: 19.5, y: 26.5, color: "#3399ff" },
+      "Washington":       { x: 21.0, y: 35.5, color: "#3399ff" },
+      "New York":         { x: 23.5, y: 28.0, color: "#3399ff" },
+      // Blue — Europe
+      "London":           { x: 37.0, y: 20.0, color: "#3399ff" },
+      "Essen":            { x: 43.0, y: 17.0, color: "#3399ff" },
+      "St. Petersburg":   { x: 52.0, y: 15.0, color: "#3399ff" },
+      "Madrid":           { x: 35.0, y: 33.0, color: "#3399ff" },
+      "Paris":            { x: 41.5, y: 24.0, color: "#3399ff" },
+      "Milan":            { x: 46.0, y: 23.0, color: "#3399ff" },
+
+      // Yellow — Americas
+      "Los Angeles":      { x:  7.5, y: 45.5, color: "#ffcc00" },
+      "Mexico City":      { x: 11.0, y: 50.0, color: "#ffcc00" },
+      "Miami":            { x: 18.0, y: 46.5, color: "#ffcc00" },
+      "Bogota":           { x: 18.0, y: 57.0, color: "#ffcc00" },
+      "Lima":             { x: 14.0, y: 67.0, color: "#ffcc00" },
+      "Santiago":         { x: 14.0, y: 77.0, color: "#ffcc00" },
+      "Buenos Aires":     { x: 20.0, y: 74.0, color: "#ffcc00" },
+      "Sao Paulo":        { x: 25.0, y: 69.0, color: "#ffcc00" },
+      // Yellow — Africa
+      "Lagos":            { x: 38.5, y: 57.0, color: "#ffcc00" },
+      "Kinshasa":         { x: 43.0, y: 63.5, color: "#ffcc00" },
+      "Khartoum":         { x: 47.5, y: 53.0, color: "#ffcc00" },
+      "Johannesburg":     { x: 45.0, y: 72.0, color: "#ffcc00" },
+
+      // Black — Middle East / South Asia
+      "Algiers":          { x: 40.5, y: 35.5, color: "#bbbbbb" },
+      "Cairo":            { x: 47.0, y: 38.0, color: "#bbbbbb" },
+      "Istanbul":         { x: 48.5, y: 27.0, color: "#bbbbbb" },
+      "Moscow":           { x: 52.5, y: 21.0, color: "#bbbbbb" },
+      "Baghdad":          { x: 53.5, y: 35.0, color: "#bbbbbb" },
+      "Tehran":           { x: 56.5, y: 28.0, color: "#bbbbbb" },
+      "Riyadh":           { x: 53.5, y: 44.0, color: "#bbbbbb" },
+      "Karachi":          { x: 58.0, y: 40.0, color: "#bbbbbb" },
+      "Delhi":            { x: 63.0, y: 36.5, color: "#bbbbbb" },
+      "Mumbai":           { x: 60.0, y: 48.0, color: "#bbbbbb" },
+      "Chennai":          { x: 64.0, y: 54.0, color: "#bbbbbb" },
+      "Kolkata":          { x: 68.5, y: 43.0, color: "#bbbbbb" },
+
+      // Red — East / Southeast Asia / Oceania
+      "Beijing":          { x: 72.0, y: 24.0, color: "#ff5555" },
+      "Seoul":            { x: 77.5, y: 23.0, color: "#ff5555" },
+      "Tokyo":            { x: 81.5, y: 28.0, color: "#ff5555" },
+      "Shanghai":         { x: 74.0, y: 33.0, color: "#ff5555" },
+      "Taipei":           { x: 78.5, y: 38.0, color: "#ff5555" },
+      "Osaka":            { x: 82.5, y: 34.0, color: "#ff5555" },
+      "Hong Kong":        { x: 74.0, y: 44.0, color: "#ff5555" },
+      "Bangkok":          { x: 70.5, y: 51.0, color: "#ff5555" },
+      "Ho Chi Minh City": { x: 75.5, y: 54.0, color: "#ff5555" },
+      "Manila":           { x: 80.5, y: 51.0, color: "#ff5555" },
+      "Jakarta":          { x: 73.5, y: 61.0, color: "#ff5555" },
+      "Sydney":           { x: 83.5, y: 68.0, color: "#ff5555" },
+    };
+
+    // ── Connections drawn on the board ───────────────────────────────────────
+    // Trans-Pacific routes are NOT drawn (they'd cross the map) but ARE in the
+    // adjacency graph: SF-Tokyo, SF-Manila, LA-Sydney
+    const DRAWN_CONNECTIONS = [
+      // North America
+      ["San Francisco","Chicago"], ["San Francisco","Los Angeles"],
+      ["Chicago","Atlanta"], ["Chicago","Montreal"], ["Chicago","Mexico City"], ["Chicago","Los Angeles"],
+      ["Atlanta","Miami"], ["Atlanta","Washington"],
+      ["Montreal","Washington"], ["Montreal","New York"],
+      ["Washington","New York"], ["Washington","Miami"],
+      ["New York","London"], ["New York","Madrid"],
+      // Europe
+      ["London","Essen"], ["London","Madrid"], ["London","Paris"],
+      ["Madrid","Paris"], ["Madrid","Algiers"], ["Madrid","Sao Paulo"],
+      ["Paris","Essen"], ["Paris","Milan"], ["Paris","Algiers"],
+      ["Essen","Milan"], ["Essen","St. Petersburg"],
+      ["Milan","Istanbul"],
+      ["St. Petersburg","Istanbul"], ["St. Petersburg","Moscow"],
+      // South America
+      ["Los Angeles","Mexico City"],
+      ["Mexico City","Miami"], ["Mexico City","Bogota"], ["Mexico City","Lima"],
+      ["Miami","Bogota"],
+      ["Bogota","Lima"], ["Bogota","Buenos Aires"], ["Bogota","Sao Paulo"],
+      ["Lima","Santiago"],
+      ["Buenos Aires","Sao Paulo"],
+      ["Sao Paulo","Lagos"],
+      // Africa
+      ["Lagos","Kinshasa"], ["Lagos","Khartoum"],
+      ["Kinshasa","Khartoum"], ["Kinshasa","Johannesburg"],
+      ["Khartoum","Johannesburg"], ["Khartoum","Cairo"],
+      // Middle East
+      ["Algiers","Cairo"], ["Algiers","Istanbul"],
+      ["Cairo","Istanbul"], ["Cairo","Baghdad"], ["Cairo","Riyadh"],
+      ["Istanbul","Baghdad"], ["Istanbul","Moscow"],
+      ["Moscow","Tehran"],
+      ["Baghdad","Tehran"], ["Baghdad","Riyadh"], ["Baghdad","Karachi"],
+      ["Riyadh","Karachi"],
+      ["Tehran","Karachi"], ["Tehran","Delhi"],
+      ["Karachi","Delhi"], ["Karachi","Mumbai"],
+      ["Delhi","Mumbai"], ["Delhi","Chennai"], ["Delhi","Kolkata"],
+      ["Mumbai","Chennai"],
+      ["Chennai","Kolkata"], ["Chennai","Bangkok"], ["Chennai","Jakarta"],
+      ["Kolkata","Bangkok"], ["Kolkata","Hong Kong"],
+      // East Asia
+      ["Beijing","Seoul"], ["Beijing","Shanghai"],
+      ["Seoul","Shanghai"], ["Seoul","Tokyo"],
+      ["Tokyo","Shanghai"], ["Tokyo","Osaka"],
+      ["Shanghai","Hong Kong"], ["Shanghai","Taipei"],
+      ["Taipei","Hong Kong"], ["Taipei","Osaka"], ["Taipei","Manila"],
+      ["Hong Kong","Bangkok"], ["Hong Kong","Ho Chi Minh City"], ["Hong Kong","Manila"],
+      ["Bangkok","Ho Chi Minh City"], ["Bangkok","Jakarta"],
+      ["Ho Chi Minh City","Jakarta"], ["Ho Chi Minh City","Manila"],
+      ["Manila","Sydney"],
+      ["Jakarta","Sydney"],
+    ];
+
+    const TRANSPACIFIC = [
+      ["San Francisco","Tokyo"],
+      ["San Francisco","Manila"],
+      ["Los Angeles","Sydney"],
+    ];
+
+    // ── Build adjacency ──────────────────────────────────────────────────────
+    const adjacency = {};
+    Object.keys(CITIES).forEach(c => { adjacency[c] = new Set(); });
+    [...DRAWN_CONNECTIONS, ...TRANSPACIFIC].forEach(([a, b]) => {
+      adjacency[a].add(b);
+      adjacency[b].add(a);
+    });
+
+    // ── State ────────────────────────────────────────────────────────────────
+    let currentCity = "Atlanta";
+
+    // ── Render SVG connections ───────────────────────────────────────────────
+    const svg = document.getElementById('svg-overlay');
+
+    function renderConnections() {
+      svg.innerHTML = '';
+      DRAWN_CONNECTIONS.forEach(([a, b]) => {
+        const ca = CITIES[a], cb = CITIES[b];
+        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        line.setAttribute('x1', ca.x); line.setAttribute('y1', ca.y);
+        line.setAttribute('x2', cb.x); line.setAttribute('y2', cb.y);
+        line.setAttribute('class', 'conn-normal');
+        line.dataset.a = a;
+        line.dataset.b = b;
+        svg.appendChild(line);
+      });
+    }
+
+    function highlightConnections() {
+      svg.querySelectorAll('line').forEach(line => {
+        const { a, b } = line.dataset;
+        const active = (a === currentCity && adjacency[currentCity].has(b))
+                    || (b === currentCity && adjacency[currentCity].has(a));
+        line.setAttribute('class', active ? 'conn-active' : 'conn-normal');
+      });
+    }
+
+    // ── Render city nodes ────────────────────────────────────────────────────
+    const citiesLayer = document.getElementById('cities-layer');
+
+    function renderCities() {
+      citiesLayer.innerHTML = '';
+      Object.entries(CITIES).forEach(([name, data]) => {
+        const node = document.createElement('div');
+        node.className = 'city-node';
+        node.dataset.city = name;
+        node.style.left = data.x + '%';
+        node.style.top  = data.y + '%';
+
+        const dot = document.createElement('div');
+        dot.className = 'dot';
+        dot.style.background = data.color;
+
+        const label = document.createElement('div');
+        label.className = 'label';
+        label.textContent = name;
+
+        node.appendChild(dot);
+        node.appendChild(label);
+        node.addEventListener('click', () => onCityClick(name));
+        citiesLayer.appendChild(node);
+      });
+    }
+
+    function updateCityStates() {
+      document.querySelectorAll('.city-node').forEach(node => {
+        const name = node.dataset.city;
+        node.classList.remove('current', 'valid-move', 'invalid');
+        if (name === currentCity) {
+          node.classList.add('current');
+        } else if (adjacency[currentCity].has(name)) {
+          node.classList.add('valid-move');
+        } else {
+          node.classList.add('invalid');
+        }
+      });
+    }
+
+    // ── Token ────────────────────────────────────────────────────────────────
+    const token = document.getElementById('token');
+
+    function placeToken() {
+      const city = CITIES[currentCity];
+      token.style.left = city.x + '%';
+      token.style.top  = city.y + '%';
+    }
+
+    // ── Info panel ───────────────────────────────────────────────────────────
+    function updateInfoPanel() {
+      document.getElementById('current-city').textContent = currentCity;
+      const moves = [...adjacency[currentCity]].sort();
+      document.getElementById('valid-moves-list').textContent = moves.join(', ');
+    }
+
+    // ── Toast ────────────────────────────────────────────────────────────────
+    let toastTimer = null;
+    const toastEl = document.getElementById('toast');
+
+    function showToast(msg) {
+      toastEl.textContent = msg;
+      toastEl.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toastEl.classList.remove('show'), 1500);
+    }
+
+    // ── Click handler ────────────────────────────────────────────────────────
+    function onCityClick(name) {
+      if (name === currentCity) return;
+      if (!adjacency[currentCity].has(name)) {
+        showToast(`${name} is not connected to ${currentCity}`);
+        return;
+      }
+      currentCity = name;
+      placeToken();
+      updateCityStates();
+      highlightConnections();
+      updateInfoPanel();
+    }
+
+    // ── Init ─────────────────────────────────────────────────────────────────
+    renderConnections();
+    renderCities();
+    placeToken();
+    updateCityStates();
+    highlightConnections();
+    updateInfoPanel();
+  </script>
+</body>
+</html>
