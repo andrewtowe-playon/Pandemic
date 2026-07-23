@@ -157,16 +157,20 @@ const Rules = {
     const idx = fromPlayer.hand.indexOf(card);
     if (idx === -1) return { ok: false, reason: 'Card not in that player\'s hand' };
 
+    // Share Knowledge moves CITY cards only (never events). The Researcher's
+    // ability only relaxes the "must match the current city" requirement.
+    if (card.type !== 'city')
+      return { ok: false, reason: 'Only city cards can be shared' };
     const isResearcher = fromPlayer.role === 'Researcher';
-    if (!isResearcher) {
-      if (card.type !== 'city' || card.city !== fromPlayer.location)
-        return { ok: false, reason: `Can only share the card matching the current city (${fromPlayer.location})` };
-    }
+    if (!isResearcher && card.city !== fromPlayer.location)
+      return { ok: false, reason: `Can only share the card matching the current city (${fromPlayer.location})` };
 
     fromPlayer.hand.splice(idx, 1);
     toPlayer.hand.push(card);
     GameState.actionsRemaining--;
-    logEvent(`${fromPlayer.name} gave ${card.city || card.name} to ${toPlayer.name}`);
+    logEvent(`${fromPlayer.name} gave ${card.city} to ${toPlayer.name}`);
+    if (Cards.isOverHandLimit(toPlayer))
+      logEvent(`${toPlayer.name} is over the ${HAND_LIMIT}-card hand limit and must discard!`);
     return { ok: true };
   },
 
@@ -182,6 +186,8 @@ const Rules = {
     const required = player.role === 'Scientist' ? 4 : 5;
     if (!Array.isArray(cardsToSpend) || cardsToSpend.length !== required)
       return { ok: false, reason: `Must discard exactly ${required} ${color} city cards` };
+    if (new Set(cardsToSpend).size !== required)
+      return { ok: false, reason: 'Duplicate cards are not allowed' };
 
     for (const card of cardsToSpend) {
       if (card.type !== 'city' || card.color !== color)
@@ -193,15 +199,86 @@ const Rules = {
     // Discard all
     cardsToSpend.forEach(card => {
       const idx = player.hand.indexOf(card);
-      player.hand.splice(idx, 1);
-      GameState.playerDiscard.push(card);
+      if (idx !== -1) {
+        player.hand.splice(idx, 1);
+        GameState.playerDiscard.push(card);
+      }
     });
 
     GameState.cures[color] = CURE.CURED;
     GameState.actionsRemaining--;
     logEvent(`${player.name} discovered a cure for ${color}!`);
+
+    // Medic passive: the moment a disease is cured, cubes of that color in the
+    // Medic's city are removed automatically (no action) — not only on entry.
+    GameState.players
+      .filter(p => p.role === 'Medic')
+      .forEach(medic => Rules.onEnterCity(medic));
+
     Rules.checkEradication(color);
     Rules.checkWin();
+    return { ok: true };
+  },
+
+  /* ======================================================================
+   * ROLE-SPECIFIC ACTIONS  (Rules.md > Roles)
+   * ==================================================================== */
+
+  /** Operations Expert: once per turn, move from a research station to ANY
+   *  city by discarding ANY city card. Costs 1 action. */
+  opsExpertMove(player, toCity, cardToDiscard) {
+    if (GameState.actionsRemaining <= 0) return { ok: false, reason: 'No actions left' };
+    if (player.role !== 'Operations Expert') return { ok: false, reason: 'Operations Expert only' };
+    if (player.usedOpsMove) return { ok: false, reason: 'Already used this turn' };
+    if (!GameState.cities[player.location]?.station)
+      return { ok: false, reason: 'Must be at a research station' };
+    if (!GameState.cities[toCity]) return { ok: false, reason: `Unknown city: ${toCity}` };
+    if (toCity === player.location) return { ok: false, reason: 'Already in that city' };
+    const idx = player.hand.indexOf(cardToDiscard);
+    if (idx === -1 || cardToDiscard.type !== 'city')
+      return { ok: false, reason: 'Must discard a city card from your hand' };
+
+    player.hand.splice(idx, 1);
+    GameState.playerDiscard.push(cardToDiscard);
+    player.location = toCity;
+    player.usedOpsMove = true;   // reset each turn by Game.nextTurn()
+    GameState.actionsRemaining--;
+    logEvent(`${player.name} (Ops Expert) moved from a station to ${toCity}`);
+    Rules.onEnterCity(player);
+    return { ok: true };
+  },
+
+  /** Dispatcher: move any pawn to a city containing another pawn. 1 action.
+   *  (The Dispatcher's other ability — moving another pawn as if their own —
+   *  is done by calling the normal movement actions with that player.) */
+  dispatcherMoveToPawn(dispatcher, targetPlayerId, destPlayerId) {
+    if (GameState.actionsRemaining <= 0) return { ok: false, reason: 'No actions left' };
+    if (dispatcher.role !== 'Dispatcher') return { ok: false, reason: 'Dispatcher only' };
+    const target = GameState.players.find(p => p.id === targetPlayerId);
+    const dest   = GameState.players.find(p => p.id === destPlayerId);
+    if (!target || !dest) return { ok: false, reason: 'Player not found' };
+    if (target === dest || target.location === dest.location)
+      return { ok: false, reason: 'Pawn is already there' };
+
+    target.location = dest.location;
+    GameState.actionsRemaining--;
+    logEvent(`Dispatcher moved ${target.name} to ${dest.name} (${dest.location})`);
+    Rules.onEnterCity(target);
+    return { ok: true };
+  },
+
+  /** Contingency Planner: as an action, take an Event card from the player
+   *  discard pile and store it on the role card (max 1 stored). */
+  contingencyRetrieve(player, eventName) {
+    if (GameState.actionsRemaining <= 0) return { ok: false, reason: 'No actions left' };
+    if (player.role !== 'Contingency Planner') return { ok: false, reason: 'Contingency Planner only' };
+    if (player.storedEvent) return { ok: false, reason: 'Already storing an event card' };
+    const idx = GameState.playerDiscard.findIndex(c => c.type === 'event' && c.name === eventName);
+    if (idx === -1) return { ok: false, reason: `${eventName} is not in the player discard pile` };
+
+    player.storedEvent = GameState.playerDiscard.splice(idx, 1)[0];
+    GameState.actionsRemaining--;
+    logEvent(`${player.name} retrieved ${eventName} from the discard pile`);
     return { ok: true };
   },
 
@@ -324,6 +401,11 @@ const Rules = {
     const qs = GameState.players.find(p => p.role === 'Quarantine Specialist');
     if (qs && (qs.location === city || isAdjacent(qs.location, city))) return;
 
+    // Medic: prevents placing cubes of CURED diseases in their city
+    // (official 2013 rulebook — see Rules.md > Roles > Medic).
+    const medicHere = GameState.players.find(p => p.role === 'Medic' && p.location === city);
+    if (medicHere && GameState.cures[color] !== CURE.UNCURED) return;
+
     // First call creates the chain-tracking Set
     if (!alreadyOutbroken) alreadyOutbroken = new Set();
 
@@ -400,26 +482,30 @@ const Rules = {
    * No action cost. Can be played by ANY player on ANY turn.
    * ==================================================================== */
   playEvent(player, eventName, params) {
-    // Find and consume the event card
-    const handIdx = player.hand.findIndex(c => c.type === 'event' && c.name === eventName);
-    if (handIdx !== -1) {
-      const card = player.hand.splice(handIdx, 1)[0];
-      GameState.playerDiscard.push(card);
-    } else if (player.role === 'Contingency Planner' && player.storedEvent?.name === eventName) {
-      // Contingency Planner's stored card leaves the game (not to discard)
-      player.storedEvent = null;
-    } else {
-      return { ok: false, reason: `${eventName} not in hand` };
-    }
+    params = params || {};
 
+    // ---- 1. Locate the card (do NOT consume yet — validate params first,
+    //         otherwise an invalid play would burn the event card). ----------
+    const handIdx = player.hand.findIndex(c => c.type === 'event' && c.name === eventName);
+    const fromStored = handIdx === -1
+      && player.role === 'Contingency Planner'
+      && player.storedEvent?.name === eventName;
+    if (handIdx === -1 && !fromStored)
+      return { ok: false, reason: `${eventName} not in hand` };
+
+    // ---- 2. Validate params per event (pure checks, no mutation). ----------
+    let apply; // effect to run once the card is legitimately consumed
     switch (eventName) {
       case 'Airlift': {
         // params: { playerId, toCity }
         const target = GameState.players.find(p => p.id === params.playerId);
         if (!target) return { ok: false, reason: 'Player not found' };
-        target.location = params.toCity;
-        Rules.onEnterCity(target);
-        logEvent(`Airlift: ${target.name} moved to ${params.toCity}`);
+        if (!GameState.cities[params.toCity]) return { ok: false, reason: `Unknown city: ${params.toCity}` };
+        apply = () => {
+          target.location = params.toCity;
+          Rules.onEnterCity(target);
+          logEvent(`Airlift: ${target.name} moved to ${params.toCity}`);
+        };
         break;
       }
       case 'Government Grant': {
@@ -427,36 +513,60 @@ const Rules = {
         if (!GameState.cities[params.city]) return { ok: false, reason: `Unknown city: ${params.city}` };
         if (GameState.cities[params.city].station) return { ok: false, reason: 'Research station already there' };
         if (getStations().length >= MAX_STATIONS) return { ok: false, reason: `Max ${MAX_STATIONS} stations on board` };
-        GameState.cities[params.city].station = true;
-        logEvent(`Government Grant: research station built in ${params.city}`);
+        apply = () => {
+          GameState.cities[params.city].station = true;
+          logEvent(`Government Grant: research station built in ${params.city}`);
+        };
         break;
       }
       case 'One Quiet Night': {
-        GameState.oneQuietNight = true;
-        logEvent('One Quiet Night: next infect phase will be skipped.');
+        apply = () => {
+          GameState.oneQuietNight = true;
+          logEvent('One Quiet Night: next infect phase will be skipped.');
+        };
         break;
       }
       case 'Resilient Population': {
         // params: { city } — remove that city's card from the infection discard
         const discardIdx = GameState.infectionDiscard.findIndex(c => c.city === params.city);
         if (discardIdx === -1) return { ok: false, reason: `${params.city} not in infection discard` };
-        GameState.infectionDiscard.splice(discardIdx, 1);
-        logEvent(`Resilient Population: ${params.city} removed from infection discard.`);
+        apply = () => {
+          GameState.infectionDiscard.splice(discardIdx, 1);
+          logEvent(`Resilient Population: ${params.city} removed from infection discard.`);
+        };
         break;
       }
       case 'Forecast': {
-        // params: { newOrder } — array of up to 6 infection cards in desired order
+        // params: { newOrder } — the top N (N = min(6, deck size)) infection
+        // cards rearranged. Must be EXACTLY those cards — a permutation — or a
+        // buggy caller could duplicate/destroy infection cards.
         if (!Array.isArray(params.newOrder))
           return { ok: false, reason: 'Forecast requires a newOrder array' };
-        const count = Math.min(params.newOrder.length, 6, GameState.infectionDeck.length);
-        // Replace the top `count` cards with the caller-supplied order
-        GameState.infectionDeck.splice(0, count, ...params.newOrder.slice(0, count));
-        logEvent('Forecast: top infection cards reordered.');
+        const count = Math.min(6, GameState.infectionDeck.length);
+        if (params.newOrder.length !== count)
+          return { ok: false, reason: `Forecast must reorder exactly the top ${count} cards` };
+        const topCities = GameState.infectionDeck.slice(0, count).map(c => c.city).sort();
+        const newCities = params.newOrder.map(c => c && c.city).sort();
+        if (topCities.some((c, i) => c !== newCities[i]))
+          return { ok: false, reason: 'Forecast order must contain exactly the current top cards' };
+        apply = () => {
+          GameState.infectionDeck.splice(0, count, ...params.newOrder);
+          logEvent('Forecast: top infection cards reordered.');
+        };
         break;
       }
       default:
         return { ok: false, reason: `Unknown event card: ${eventName}` };
     }
+
+    // ---- 3. Consume the card, then apply the effect. -----------------------
+    if (fromStored) {
+      player.storedEvent = null;           // CP's stored card leaves the game
+    } else {
+      const card = player.hand.splice(handIdx, 1)[0];
+      GameState.playerDiscard.push(card);
+    }
+    apply();
     return { ok: true };
   },
 };
