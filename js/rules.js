@@ -314,7 +314,9 @@ const Rules = {
       if (card.type === 'epidemic') {
         drewEpidemic = true;
         Rules.resolveEpidemic();
-        // Epidemic cards do not enter the hand
+        // Epidemic cards don't enter a hand — they go to the player discard
+        // (rulebook: "discard the Epidemic card"). Keeps player-card count whole.
+        GameState.playerDiscard.push(card);
       } else {
         player.hand.push(card);
       }

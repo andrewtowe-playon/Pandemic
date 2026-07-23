@@ -30,12 +30,29 @@ end-game modal all work. What's left is **UI plumbing** in `controls.js`:
 | ✅ Done | 7-card hand limit discard prompt (draw phase + post-Share) | `controls.js` / Andrew | `ee655ae` |
 | ✅ Done | Role-action buttons (Ops Expert Move + Dispatcher pawn-to-pawn) | `controls.js` / Andrew | `7b158c1` |
 
-All tracked items are now complete. Keep this table updated if new gaps are found.
+All tracked items are complete. A post-completion audit added test coverage (win path,
+movement/build/event paths, card conservation, real-modal render) and docs; the suite is
+**86 checks, green in CI**. Keep this table updated if new gaps are found.
 
-> **Handoff (2026-07-23):** Mike left for the airport. Andrew picked up event-card UI,
-> CP wiring, and the turn-summary popup. Only one P0 remains — the hand-limit discard
-> prompt — now picked up by **Tae** (Tae's own `cards.js` is complete). Ownership map
-> above still lists Mike as the original `controls.js` owner for history.
+> **Handoff (2026-07-23):** Mike left for the airport. Andrew picked up event-card UI, CP
+> wiring, the turn-summary popup, and role buttons; **Tae** landed the hand-limit discard
+> prompt (now ✅) plus the "Outage Season" reskin. Ownership map above lists Mike as the
+> original `controls.js` owner for history.
+
+### Known rules deviations (intentional scope calls — team to confirm)
+
+Documented during the audit; none are bugs, but the team should decide whether to close
+any before a "rules-complete" claim:
+
+- **Events are current-player-only.** The rules allow playing an event at any time, by any
+  player (even on someone else's turn). The UI only surfaces the current player's hand, so
+  reactive off-turn events (e.g. Resilient Population / Forecast between epidemic draws)
+  aren't possible.
+- **Discover Cure auto-picks cards.** The UI spends the first N matching cards; the rules
+  let a player choose *which* to keep (matters for later Direct/Charter flights).
+- **Dispatcher "move another pawn as your own" isn't exposed** — only the move-to-a-pawn
+  ability is wired. (Open rules question from PR #2: whose hand pays for a Dispatcher-driven
+  flight — never ruled on; currently moot.)
 
 ## The one architectural rule
 
@@ -54,15 +71,19 @@ user input  ->  Rules.* (or setup) mutates GameState  ->  Render.render()
 
 | File | Owner | What it does |
 |---|---|---|
-| `js/state.js` | **Andrew** | Constants + the `GameState` contract + pure helpers. **Frozen at 0:30** — additive changes only after. | - Done
-| `js/rules.js` | **Andrew** | The rules engine: all actions, draw/epidemic/infect, outbreak chains, eradication, win/lose. | - Done
+| `js/state.js` | **Andrew** | Constants + the `GameState` contract + pure helpers. **Frozen at 0:30** — additive changes only after. |
+| `js/rules.js` | **Andrew** | The rules engine: all actions, draw/epidemic/infect, outbreak chains, eradication, win/lose. |
 | `js/game.js` | **Ryan** | Setup + turn cycle orchestration (ACTIONS → DRAW → INFECT → next player). Glue only. |
-| `js/render.js` | **Abigail** | Board rendering: cubes, stations, pawns, markers, highlights. |
+| `js/render.js` | **Abigail** | Board rendering: cubes, stations, pawns, markers, pile counts, highlights. |
 | `js/cards.js` | **Tae** | Both decks: build, shuffle, deal, seed infections, epidemic intensify. |
-| `js/controls.js` | **Mike** | Sidebar UI, action buttons, hand, turn buttons, toasts, win/lose modal. | - Done
+| `js/controls.js` | **Mike → shared** | Sidebar UI, action bar, hand, modals, event/role interactions. Mike started it; after he left, Andrew, Tae, and Ryan all contributed (event UI, hand-limit discard, action pills). **Coordinate before editing.** |
+| `js/theme.js` | **Tae** | Display-only reskin ("Outage Season") — label/flavor maps, no game logic. |
+| `js/playerPanel.js` | **Andrew** | All-players overview panel in the sidebar. |
+| `js/devConsole.js` | **Andrew** | Dev/testing console (⚙ DEV): inspect + edit state, force epidemics. |
+| `test/` | **Ryan** | Dependency-free harness: engine, rules-audit, playthrough, paths, autoplay + CI. |
 
-`index.html` holds the DOM containers + loads scripts in dependency order. Coordinate any
-edit to it (it's the only shared-ish file besides `state.js`).
+`index.html` (DOM containers + script load order), `setup.html`, and `js/state.js` are the
+shared-ish files — coordinate edits. Everything else: edit only your own.
 
 ## The contract (what everyone can rely on)
 

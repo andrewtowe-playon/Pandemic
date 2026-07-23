@@ -86,6 +86,11 @@ function loadGame(opts) {
   // Stub UI-only calls that require a real browser to resolve (e.g. modal
   // button clicks). Tests verify game logic, not modal rendering.
   if (sandbox.Controls) {
+    // Preserve the real implementations so tests can exercise the render path
+    // directly (see paths.test.js). The stubs below keep the turn cycle moving
+    // headlessly for the flow/fuzz tests.
+    sandbox.Controls._realShowTurnSummary = sandbox.Controls.showTurnSummary;
+    sandbox.Controls._realPromptDiscard = sandbox.Controls.promptDiscard;
     sandbox.Controls.showTurnSummary = function(_pc, _ep, _ic, onContinue) { onContinue(); };
     // Auto-discard to hand limit so the turn cycle keeps running headlessly.
     sandbox.Controls.promptDiscard = function(player, onDone) {
