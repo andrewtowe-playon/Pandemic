@@ -104,6 +104,53 @@
     #action-buttons button.active { background: #2a56b0; border-color: #6af; }
     #log { font-size: 0.72rem; color: #99b; max-height: 160px; overflow-y: auto; }
 
+    /* ── dev console ─────────────────────────────────────────────────── */
+    #dev-section { margin-top: 14px; border-top: 1px solid #2a3a2a; padding-top: 6px; }
+    #dev-section h2 { color: #4a4; cursor: pointer; user-select: none; }
+    #dev-section h2:hover { color: #6c6; }
+    #dev-body { margin-top: 6px; }
+    #dev-tabs { display: flex; gap: 3px; margin-bottom: 6px; }
+    #dev-tabs button {
+      flex: 1; padding: 3px 0; font-size: 0.7rem; cursor: pointer;
+      background: #111a11; color: #6a6; border: 1px solid #2a3a2a; border-radius: 3px;
+    }
+    #dev-tabs button.dev-tab-active { background: #1a2f1a; color: #8f8; border-color: #4a4; }
+    .dev-json { font-size: 0.65rem; line-height: 1.4; white-space: pre-wrap; word-break: break-all;
+      background: #070f07; padding: 6px; border-radius: 4px; max-height: 320px; overflow-y: auto; }
+    .dev-jk   { color: #8cf; } /* key */
+    .dev-js   { color: #fa8; } /* string value */
+    .dev-jn   { color: #adf; } /* number */
+    .dev-jb   { color: #f88; } /* bool */
+    .dev-jnull{ color: #888; }
+    .dev-deck-title  { font-size: 0.72rem; color: #8f8; margin: 8px 0 3px; font-weight: bold; }
+    .dev-count { color: #666; font-weight: normal; }
+    .dev-card-list   { max-height: 180px; overflow-y: auto; font-size: 0.65rem; }
+    .dev-card        { padding: 1px 4px; border-left: 2px solid #444; margin: 1px 0; color: #aab; }
+    .dev-pos         { color: #556; font-style: italic; }
+    .dev-empty       { color: #445; font-size: 0.68rem; font-style: italic; margin-bottom: 4px; }
+    .dev-epidemic    { color: #f80; font-weight: bold; }
+    .dev-event       { color: #af8; }
+    .dev-c-blue      { border-color: #3399ff; }
+    .dev-c-yellow    { border-color: #ffcc00; }
+    .dev-c-black     { border-color: #aaa; }
+    .dev-c-red       { border-color: #ff5555; }
+    .dev-c-epidemic  { border-color: #f80; }
+    .dev-c-event     { border-color: #af8; }
+    .dev-deck-section{ margin-bottom: 8px; }
+    .dev-section-label { font-size: 0.65rem; color: #4a4; letter-spacing: 2px;
+      margin: 10px 0 4px; border-bottom: 1px solid #1a2f1a; }
+    .dev-row { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; margin-bottom: 4px; }
+    .dev-row label { font-size: 0.7rem; color: #8a8; }
+    .dev-row select, .dev-row input {
+      font-size: 0.68rem; background: #0a100a; color: #ccd;
+      border: 1px solid #2a3a2a; border-radius: 3px; padding: 2px 4px; flex: 1; min-width: 0;
+    }
+    .dev-row button {
+      font-size: 0.68rem; padding: 3px 7px; background: #0e1f0e; color: #8f8;
+      border: 1px solid #2a3a2a; border-radius: 3px; cursor: pointer; white-space: nowrap;
+    }
+    .dev-row button:hover { background: #162616; }
+
     #toast {
       position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
       background: rgba(200,40,40,0.9); color: white; padding: 6px 18px;
@@ -165,6 +212,21 @@
 
       <h2>LOG</h2>
       <div id="log"></div>
+
+      <!-- DEV CONSOLE -->
+      <div id="dev-section">
+        <h2 onclick="DevConsole.toggle()">⚙ DEV <span id="dev-chevron">▸</span></h2>
+        <div id="dev-body" style="display:none">
+          <div id="dev-tabs">
+            <button id="dev-btn-state" class="dev-tab-active" onclick="DevConsole.showTab('state')">State</button>
+            <button id="dev-btn-decks" onclick="DevConsole.showTab('decks')">Decks</button>
+            <button id="dev-btn-edit"  onclick="DevConsole.showTab('edit')">Edit</button>
+          </div>
+          <div id="dev-tab-state"></div>
+          <div id="dev-tab-decks" style="display:none"></div>
+          <div id="dev-tab-edit"  style="display:none"></div>
+        </div>
+      </div>
     </aside>
   </div>
 
@@ -179,5 +241,6 @@
   <script src="js/render.js"></script>
   <script src="js/controls.js"></script>
   <script src="js/game.js"></script>
+  <script src="js/devConsole.js"></script>
 </body>
 </html>
