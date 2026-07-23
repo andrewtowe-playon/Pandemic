@@ -84,6 +84,10 @@ document.addEventListener('DOMContentLoaded', () => {
       PlayerPanel.render();
     };
   }
+  // Game.boot() may have already called Render.render() before this listener
+  // ran (script load order: game.js registers its DOMContentLoaded listener
+  // first). Render directly here to catch that initial render.
+  PlayerPanel.render();
 });
 
 window.PlayerPanel = PlayerPanel;
