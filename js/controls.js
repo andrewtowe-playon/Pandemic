@@ -441,6 +441,7 @@ const Controls = {
     this._renderStatusBar();
     this._renderPlayerInfo();
     this._renderHand();
+    this._renderOtherEvents();
     this._renderCureStatus();
     this._renderLog();
     this._refreshActionButtons();
@@ -541,6 +542,65 @@ const Controls = {
       warn.textContent = `Over hand limit (${player.hand.length}/${HAND_LIMIT})`;
       box.appendChild(warn);
     }
+  },
+
+  /** Event cards held by OTHER players (playable any time per the rules).
+   *  Renders into #other-events, creating the container + heading if needed. */
+  _renderOtherEvents() {
+    const sidebar = document.getElementById('sidebar');
+    if (!sidebar) return;
+
+    // Lazily create the section once, inserted just before #cure-status.
+    let section = document.getElementById('other-events-section');
+    if (!section) {
+      section = document.createElement('div');
+      section.id = 'other-events-section';
+      const cureEl = document.getElementById('cure-status');
+      const h2 = cureEl && cureEl.previousElementSibling;
+      // Insert before the DISEASES heading (or just append to sidebar).
+      const diseasesH2 = Array.from(sidebar.querySelectorAll('h2'))
+        .find(el => el.textContent.trim() === 'DISEASES');
+      if (diseasesH2) sidebar.insertBefore(section, diseasesH2);
+      else sidebar.appendChild(section);
+    }
+
+    section.innerHTML = '';
+
+    const current = getCurrentPlayer();
+    if (!current || GameState.phase === PHASE.WON || GameState.phase === PHASE.LOST) return;
+
+    // Gather: hand event cards + CP stored events from everyone except current player.
+    const entries = []; // { owner, card }
+    GameState.players.forEach(p => {
+      if (p === current) return;
+      p.hand.forEach(card => {
+        if (card.type === 'event') entries.push({ owner: p, card });
+      });
+      if (p.role === 'Contingency Planner' && p.storedEvent)
+        entries.push({ owner: p, card: p.storedEvent, stored: true });
+    });
+
+    if (!entries.length) return;
+
+    const h2 = document.createElement('h2');
+    h2.textContent = 'OTHER EVENTS';
+    h2.style.cssText = 'font-size:0.9rem;color:#6af;margin:10px 0 6px;letter-spacing:2px;';
+    section.appendChild(h2);
+
+    const box = document.createElement('div');
+    entries.forEach(({ owner, card, stored }) => {
+      const role = ROLES[owner.role] || { color: '#cce' };
+      const chip = document.createElement('span');
+      chip.style.cssText =
+        'display:inline-block;margin:2px;padding:3px 7px;border-radius:4px;' +
+        'font-size:0.72rem;cursor:pointer;' +
+        `border:2px solid ${role.color};background:#2a2050;color:#e8d9ff;`;
+      chip.title = `${owner.name}'s event — click to play`;
+      chip.textContent = `★ ${card.name}${stored ? ' [stored]' : ''} (${owner.name})`;
+      chip.addEventListener('click', () => this._startEventPlay(owner, card));
+      box.appendChild(chip);
+    });
+    section.appendChild(box);
   },
 
   /** Per-color cure marker + cubes left in supply. */
