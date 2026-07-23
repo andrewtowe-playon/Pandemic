@@ -43,9 +43,15 @@ const Cards = {
    * Places cubes directly (no outbreak checks — setup can't outbreak).
    */
   seedInitialInfections() {
-    // TODO(Tae): for counts [3,2,1], draw 3 cards each from top, add `count`
-    // cubes of the card's color to its city, decrement cubesRemaining, and push
-    // the card to infectionDiscard.
+    [3, 2, 1].forEach(count => {
+      for (let i = 0; i < 3; i++) {
+        const card = this.drawInfectionTop();
+        if (!card) return;                       // deck ran dry (shouldn't at setup)
+        GameState.cities[card.city].cubes[card.color] += count;
+        GameState.cubesRemaining[card.color] -= count;
+        GameState.infectionDiscard.push(card);
+      }
+    });
   },
 
   /**
@@ -57,8 +63,25 @@ const Cards = {
    *  4. Concatenate piles into GameState.playerDeck (index 0 = top).
    */
   buildPlayerDeckWithEpidemics(numPlayers, difficulty) {
-    // TODO(Tae): implement per the steps above. Deal into GameState.players[].hand.
-    // Use EPIDEMICS_BY_DIFFICULTY[difficulty] and STARTING_HAND_BY_PLAYERS[numPlayers].
+    // 1. Base pile (48 city + 5 event, shuffled — no epidemics yet).
+    const base = this.buildBasePlayerCards();
+
+    // 2. Deal starting hands off the top, before epidemics exist.
+    const handSize = STARTING_HAND_BY_PLAYERS[numPlayers];
+    GameState.players.forEach(player => { player.hand = base.splice(0, handSize); });
+
+    // 3. Split the rest into E roughly-equal piles (E = epidemics for difficulty).
+    const numEpidemics = EPIDEMICS_BY_DIFFICULTY[difficulty];
+    const pileSize = Math.ceil(base.length / numEpidemics);
+    const piles = [];
+    for (let i = 0; i < numEpidemics; i++) piles.push(base.splice(0, pileSize));
+
+    // 4. Shuffle exactly ONE epidemic into each pile, then stack piles top-to-bottom.
+    piles.forEach(pile => {
+      pile.push({ type: 'epidemic' });
+      this.shuffle(pile);
+    });
+    GameState.playerDeck = [].concat(...piles);
   },
 
   /** Draw the top player card (index 0). Returns the card or null if empty. */
@@ -78,8 +101,10 @@ const Cards = {
 
   /** Epidemic > Intensify: shuffle the infection discard, place on TOP of deck. */
   intensify() {
-    // TODO(Tae): shuffle GameState.infectionDiscard, unshift each onto
-    // GameState.infectionDeck (so they become the new top), then clear discard.
+    this.shuffle(GameState.infectionDiscard);
+    // Shuffled discard goes on TOP of the deck (index 0 = next to draw).
+    GameState.infectionDeck = [...GameState.infectionDiscard, ...GameState.infectionDeck];
+    GameState.infectionDiscard = [];
   },
 
   /** Is the current player over the hand limit? (7 cards) */
