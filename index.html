@@ -20,10 +20,10 @@
     header {
       display: flex;
       align-items: center;
-      gap: 14px;
+      gap: 12px;
       padding: 7px 16px;
       width: 100%;
-      background: rgba(0,0,30,0.9);
+      background: rgba(0,0,30,0.95);
       border-bottom: 1px solid #224;
       flex-wrap: wrap;
     }
@@ -33,20 +33,86 @@
       letter-spacing: 4px;
       color: #6af;
       text-shadow: 0 0 12px #4af;
+      flex-shrink: 0;
     }
 
-    #info-panel {
+    /* Player badges */
+    #player-badges {
       display: flex;
-      gap: 16px;
-      font-size: 0.8rem;
+      gap: 6px;
       flex-wrap: wrap;
     }
-    #info-panel span { color: #aab; }
-    #info-panel strong { color: gold; font-weight: normal; }
-    #valid-moves-list { color: #5bf; }
+
+    .player-badge {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 8px;
+      border-radius: 6px;
+      border: 1px solid #334;
+      background: rgba(0,0,20,0.6);
+      font-size: 0.75rem;
+      transition: all 0.2s;
+    }
+    .player-badge.active {
+      border-color: var(--player-color);
+      background: rgba(0,0,40,0.9);
+      box-shadow: 0 0 8px var(--player-color), inset 0 0 6px rgba(255,255,255,0.04);
+    }
+    .player-badge .badge-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--player-color);
+      flex-shrink: 0;
+    }
+    .player-badge.active .badge-dot {
+      box-shadow: 0 0 6px var(--player-color);
+    }
+    .player-badge .badge-name {
+      color: #99a;
+      font-weight: bold;
+    }
+    .player-badge.active .badge-name { color: #dde; }
+    .player-badge .badge-city {
+      color: #556;
+      font-size: 0.7rem;
+      max-width: 80px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .player-badge.active .badge-city { color: #aab; }
+
+    /* Turn info */
+    #turn-info {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.82rem;
+    }
+    #turn-label {
+      font-weight: bold;
+      color: #dde;
+    }
+    #moves-pips {
+      display: flex;
+      gap: 3px;
+    }
+    .pip {
+      width: 10px;
+      height: 10px;
+      border-radius: 2px;
+      background: #334;
+      transition: background 0.2s;
+    }
+    .pip.filled {
+      background: var(--active-color, gold);
+      box-shadow: 0 0 4px var(--active-color, gold);
+    }
 
     button {
-      padding: 4px 12px;
+      padding: 4px 11px;
       border-radius: 5px;
       border: 1px solid #446;
       background: #223;
@@ -54,28 +120,29 @@
       cursor: pointer;
       font-size: 0.78rem;
       font-family: inherit;
+      flex-shrink: 0;
     }
     button:hover { background: #334; }
 
-    #cal-btn.active { background: #442200; border-color: orange; color: orange; }
+    #end-turn-btn {
+      border-color: #464;
+      color: #8b8;
+    }
+    #end-turn-btn:hover { background: #142; }
 
+    #cal-btn.active { background: #442200; border-color: orange; color: orange; }
     #export-btn { display: none; background: #143; border-color: #4a4; color: #8f8; }
     #export-btn:hover { background: #164; }
-
-    #cal-info {
-      display: none;
-      font-size: 0.75rem;
-      color: #a80;
-      font-style: italic;
-    }
+    #cal-info { display: none; font-size: 0.72rem; color: #a80; font-style: italic; }
 
     #transpacific-note {
       margin-left: auto;
-      font-size: 0.72rem;
-      color: #557;
+      font-size: 0.7rem;
+      color: #446;
       font-style: italic;
     }
 
+    /* Board */
     #board-container {
       position: relative;
       width: 98vw;
@@ -98,17 +165,8 @@
       pointer-events: none;
       overflow: visible;
     }
-
-    .conn-normal {
-      stroke: rgba(255,255,255,0.18);
-      stroke-width: 0.8;
-      fill: none;
-    }
-    .conn-active {
-      stroke: rgba(255,220,50,0.55);
-      stroke-width: 1.5;
-      fill: none;
-    }
+    .conn-normal { stroke: rgba(255,255,255,0.15); stroke-width: 0.8; fill: none; }
+    .conn-active { stroke-width: 1.6; fill: none; }
 
     #cities-layer {
       position: absolute;
@@ -123,15 +181,13 @@
       pointer-events: all;
       z-index: 5;
     }
-
     .city-node .dot {
       width: 13px;
       height: 13px;
       border-radius: 50%;
-      border: 2px solid rgba(255,255,255,0.4);
+      border: 2px solid rgba(255,255,255,0.35);
       transition: transform 0.12s, box-shadow 0.12s;
     }
-
     .city-node .label {
       position: absolute;
       left: 50%;
@@ -139,41 +195,40 @@
       transform: translateX(-50%);
       white-space: nowrap;
       font-size: 7.5px;
-      color: rgba(255,255,255,0.8);
+      color: rgba(255,255,255,0.75);
       text-shadow: 0 0 4px #000, 0 0 2px #000;
       pointer-events: none;
       line-height: 1;
     }
 
-    /* Game states */
     .city-node.current .dot {
-      border-color: gold;
-      box-shadow: 0 0 10px gold, 0 0 4px #ffa;
-      transform: scale(1.2);
+      border-color: var(--active-color, gold);
+      box-shadow: 0 0 10px var(--active-color, gold);
+      transform: scale(1.3);
     }
     .city-node.valid-move { cursor: pointer; }
     .city-node.valid-move .dot {
-      border-color: #fff;
+      border-color: rgba(255,255,255,0.9);
       animation: pulse 0.85s ease-in-out infinite alternate;
     }
     .city-node.valid-move:hover .dot {
-      transform: scale(1.5);
+      transform: scale(1.55);
       box-shadow: 0 0 14px #fff;
     }
     .city-node.invalid { cursor: not-allowed; }
 
     @keyframes pulse {
-      from { box-shadow: 0 0 3px rgba(255,255,255,0.4); }
-      to   { box-shadow: 0 0 14px rgba(255,255,255,0.95); transform: scale(1.25); }
+      from { box-shadow: 0 0 3px rgba(255,255,255,0.3); }
+      to   { box-shadow: 0 0 12px rgba(255,255,255,0.9); transform: scale(1.25); }
     }
 
-    /* Calibration states */
+    /* Calibration */
     body.calibrating .city-node { cursor: grab; }
     body.calibrating .city-node:active { cursor: grabbing; }
     body.calibrating .city-node .dot {
       animation: none !important;
       border-color: orange !important;
-      box-shadow: 0 0 6px orange !important;
+      box-shadow: 0 0 5px orange !important;
       transform: none !important;
     }
     body.calibrating .city-node.dragging .dot {
@@ -181,12 +236,11 @@
       transform: scale(1.4) !important;
     }
 
-    /* Crosshair coords display */
     #coords-display {
       display: none;
       position: absolute;
       top: 4px; right: 4px;
-      background: rgba(0,0,0,0.75);
+      background: rgba(0,0,0,0.8);
       color: #fa0;
       font-size: 11px;
       padding: 3px 8px;
@@ -196,48 +250,65 @@
       font-family: monospace;
     }
 
-    #token {
+    /* Player tokens */
+    .player-token {
       position: absolute;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      border: 2.5px solid rgba(255,255,255,0.7);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.7);
+      transform: translate(-50%, -50%);
+      transition: left 0.38s cubic-bezier(0.34, 1.56, 0.64, 1),
+                  top  0.38s cubic-bezier(0.34, 1.56, 0.64, 1);
+      pointer-events: none;
+      z-index: 15;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 9px;
+      font-weight: bold;
+      color: rgba(0,0,0,0.7);
+    }
+    .player-token.active-token {
+      z-index: 25;
       width: 24px;
       height: 24px;
-      border-radius: 50%;
-      background: radial-gradient(circle at 38% 35%, #fffde7, #e0c000 60%, #8a7000);
-      border: 2.5px solid #fff8;
-      box-shadow: 0 0 14px gold, 0 0 6px orange, 0 2px 6px rgba(0,0,0,0.6);
-      transform: translate(-50%, -50%);
-      transition: left 0.35s cubic-bezier(0.34, 1.56, 0.64, 1),
-                  top  0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
-      pointer-events: none;
-      z-index: 20;
+      border-color: #fff;
+      box-shadow: 0 0 12px var(--token-color), 0 0 5px var(--token-color), 0 2px 8px rgba(0,0,0,0.8);
     }
 
+    /* Toast */
     #toast {
       position: fixed;
       bottom: 20px;
       left: 50%;
       transform: translateX(-50%);
-      background: rgba(200,40,40,0.9);
       color: white;
-      padding: 6px 18px;
+      padding: 7px 20px;
       border-radius: 20px;
-      font-size: 0.8rem;
+      font-size: 0.82rem;
       opacity: 0;
-      transition: opacity 0.3s;
+      transition: opacity 0.25s;
       pointer-events: none;
       z-index: 100;
+      background: rgba(200,40,40,0.92);
     }
     #toast.show { opacity: 1; }
-    #toast.green { background: rgba(30,140,30,0.9); }
+    #toast.green { background: rgba(30,150,30,0.92); }
+    #toast.info  { background: rgba(20,80,180,0.92); }
   </style>
 </head>
 <body>
 
   <header>
     <h1>PANDEMIC</h1>
-    <div id="info-panel">
-      <span>Location: <strong id="current-city">Atlanta</strong></span>
-      <span>Move to: <span id="valid-moves-list">—</span></span>
+    <div id="player-badges"></div>
+    <div id="turn-info">
+      <span id="turn-label">—</span>
+      <div id="moves-pips"></div>
     </div>
+    <button id="end-turn-btn" onclick="endTurn()">End Turn</button>
     <button id="cal-btn" onclick="toggleCalibration()">Calibrate</button>
     <button id="export-btn" onclick="exportCoords()">Copy Coordinates</button>
     <span id="cal-info">Drag dots to correct positions, then click Copy Coordinates</span>
@@ -249,12 +320,31 @@
     <svg id="svg-overlay" viewBox="0 0 100 100" preserveAspectRatio="none"></svg>
     <div id="cities-layer"></div>
     <div id="coords-display">x: 0.00%  y: 0.00%</div>
-    <div id="token"></div>
+    <div id="tokens-layer"></div>
   </div>
 
   <div id="toast"></div>
 
   <script>
+    // ── Players ──────────────────────────────────────────────────────────────
+    const PLAYERS = [
+      { name: "Player 1", city: "Atlanta", color: "#e05555" },
+      { name: "Player 2", city: "Atlanta", color: "#4dc4ff" },
+      { name: "Player 3", city: "Atlanta", color: "#55cc77" },
+      { name: "Player 4", city: "Atlanta", color: "#ffb833" },
+    ];
+    const MOVES_PER_TURN = 4;
+    let currentPlayerIndex = 0;
+    let movesLeft = MOVES_PER_TURN;
+
+    // Token offsets so stacked tokens are visible (px)
+    const TOKEN_OFFSETS = [
+      { dx: -7, dy: -7 },
+      { dx:  7, dy: -7 },
+      { dx: -7, dy:  7 },
+      { dx:  7, dy:  7 },
+    ];
+
     // ── City definitions ─────────────────────────────────────────────────────
     const CITIES = {
       "San Francisco":    { x:  8.2, y: 34.7, color: "#3399ff" },
@@ -370,17 +460,19 @@
       adjacency[b].add(a);
     });
 
-    // ── State ────────────────────────────────────────────────────────────────
-    let currentCity = "Atlanta";
+    // ── Calibration state ────────────────────────────────────────────────────
     let calibrating = false;
-    let dragState = null; // { name, nodeEl }
+    let dragState = null;
 
     // ── DOM refs ─────────────────────────────────────────────────────────────
-    const svg         = document.getElementById('svg-overlay');
-    const citiesLayer = document.getElementById('cities-layer');
-    const token       = document.getElementById('token');
-    const container   = document.getElementById('board-container');
-    const coordsEl    = document.getElementById('coords-display');
+    const svg          = document.getElementById('svg-overlay');
+    const citiesLayer  = document.getElementById('cities-layer');
+    const tokensLayer  = document.getElementById('tokens-layer');
+    const container    = document.getElementById('board-container');
+    const coordsEl     = document.getElementById('coords-display');
+
+    // ── Helpers ───────────────────────────────────────────────────────────────
+    const activePlayer = () => PLAYERS[currentPlayerIndex];
 
     // ── SVG connections ──────────────────────────────────────────────────────
     function renderConnections() {
@@ -398,12 +490,19 @@
     }
 
     function highlightConnections() {
+      const city = activePlayer().city;
       svg.querySelectorAll('line').forEach(line => {
         const { a, b } = line.dataset;
-        const active = adjacency[currentCity].has(a) && a !== currentCity
-                    || adjacency[currentCity].has(b) && b !== currentCity;
-        const isCurrentEdge = (a === currentCity || b === currentCity);
-        line.setAttribute('class', isCurrentEdge && !calibrating ? 'conn-active' : 'conn-normal');
+        const isEdge = (a === city || b === city);
+        if (isEdge && !calibrating) {
+          line.setAttribute('class', 'conn-active');
+          line.setAttribute('stroke', activePlayer().color);
+          line.setAttribute('stroke-opacity', '0.6');
+        } else {
+          line.setAttribute('class', 'conn-normal');
+          line.removeAttribute('stroke');
+          line.removeAttribute('stroke-opacity');
+        }
       });
     }
 
@@ -427,69 +526,149 @@
 
         node.appendChild(dot);
         node.appendChild(label);
-
-        node.addEventListener('mousedown', e => {
-          if (calibrating) { startDrag(e, name, node); }
-        });
-        node.addEventListener('click', e => {
-          if (!calibrating) onCityClick(name);
-        });
-
+        node.addEventListener('mousedown', e => { if (calibrating) startDrag(e, name, node); });
+        node.addEventListener('click', () => { if (!calibrating) onCityClick(name); });
         citiesLayer.appendChild(node);
       });
     }
 
     function updateCityStates() {
+      if (calibrating) {
+        document.querySelectorAll('.city-node').forEach(n => {
+          n.classList.remove('current', 'valid-move', 'invalid');
+        });
+        return;
+      }
+      const city = activePlayer().city;
+      const color = activePlayer().color;
+      document.documentElement.style.setProperty('--active-color', color);
       document.querySelectorAll('.city-node').forEach(node => {
         const name = node.dataset.city;
         node.classList.remove('current', 'valid-move', 'invalid');
-        if (!calibrating) {
-          if (name === currentCity)               node.classList.add('current');
-          else if (adjacency[currentCity].has(name)) node.classList.add('valid-move');
-          else                                    node.classList.add('invalid');
-        }
+        if (name === city)                    node.classList.add('current');
+        else if (adjacency[city].has(name))   node.classList.add('valid-move');
+        else                                  node.classList.add('invalid');
       });
     }
 
-    // ── Token ────────────────────────────────────────────────────────────────
-    function placeToken(animate = true) {
-      if (!animate) token.style.transition = 'none';
-      const city = CITIES[currentCity];
-      token.style.left = city.x + '%';
-      token.style.top  = city.y + '%';
-      if (!animate) requestAnimationFrame(() => { token.style.transition = ''; });
+    // ── Tokens ───────────────────────────────────────────────────────────────
+    const tokenEls = [];
+
+    function buildTokens() {
+      tokensLayer.innerHTML = '';
+      tokenEls.length = 0;
+      PLAYERS.forEach((p, i) => {
+        const el = document.createElement('div');
+        el.className = 'player-token';
+        el.style.setProperty('--token-color', p.color);
+        el.style.background = p.color;
+        el.dataset.playerIndex = i;
+        tokensLayer.appendChild(el);
+        tokenEls.push(el);
+      });
     }
 
-    // ── Info panel ───────────────────────────────────────────────────────────
-    function updateInfoPanel() {
-      document.getElementById('current-city').textContent = currentCity;
-      const moves = [...adjacency[currentCity]].sort();
-      document.getElementById('valid-moves-list').textContent = moves.join(', ');
+    function placeAllTokens(animate = true) {
+      PLAYERS.forEach((p, i) => {
+        const el = tokenEls[i];
+        const city = CITIES[p.city];
+        const off = TOKEN_OFFSETS[i];
+        if (!animate) el.style.transition = 'none';
+        el.style.left = city.x + '%';
+        el.style.top  = city.y + '%';
+        el.style.transform = `translate(calc(-50% + ${off.dx}px), calc(-50% + ${off.dy}px))`;
+        el.classList.toggle('active-token', i === currentPlayerIndex);
+        if (!animate) requestAnimationFrame(() => { el.style.transition = ''; });
+      });
     }
 
-    // ── Toast ────────────────────────────────────────────────────────────────
+    // ── Header UI ────────────────────────────────────────────────────────────
+    function buildPlayerBadges() {
+      const container = document.getElementById('player-badges');
+      container.innerHTML = '';
+      PLAYERS.forEach((p, i) => {
+        const badge = document.createElement('div');
+        badge.className = 'player-badge' + (i === currentPlayerIndex ? ' active' : '');
+        badge.style.setProperty('--player-color', p.color);
+        badge.dataset.playerIndex = i;
+        badge.innerHTML = `
+          <div class="badge-dot"></div>
+          <span class="badge-name">${p.name}</span>
+          <span class="badge-city">${p.city}</span>
+        `;
+        container.appendChild(badge);
+      });
+    }
+
+    function updateHeader() {
+      const p = activePlayer();
+      document.getElementById('turn-label').textContent = `${p.name}'s Turn`;
+      document.getElementById('turn-label').style.color = p.color;
+      document.documentElement.style.setProperty('--active-color', p.color);
+
+      // Pips
+      const pipsEl = document.getElementById('moves-pips');
+      pipsEl.innerHTML = '';
+      for (let i = 0; i < MOVES_PER_TURN; i++) {
+        const pip = document.createElement('div');
+        pip.className = 'pip' + (i < movesLeft ? ' filled' : '');
+        pipsEl.appendChild(pip);
+      }
+
+      // Badges
+      document.querySelectorAll('.player-badge').forEach((badge, i) => {
+        badge.classList.toggle('active', i === currentPlayerIndex);
+        badge.querySelector('.badge-city').textContent = PLAYERS[i].city;
+      });
+    }
+
+    // ── Toast ─────────────────────────────────────────────────────────────────
     let toastTimer = null;
     const toastEl = document.getElementById('toast');
 
-    function showToast(msg, green = false) {
+    function showToast(msg, type = '') {
       toastEl.textContent = msg;
-      toastEl.className = 'show' + (green ? ' green' : '');
+      toastEl.className = 'show' + (type ? ' ' + type : '');
       clearTimeout(toastTimer);
-      toastTimer = setTimeout(() => { toastEl.className = ''; }, 2000);
+      toastTimer = setTimeout(() => { toastEl.className = ''; }, 2200);
     }
 
-    // ── Game click ───────────────────────────────────────────────────────────
+    // ── Game logic ────────────────────────────────────────────────────────────
     function onCityClick(name) {
-      if (name === currentCity) return;
-      if (!adjacency[currentCity].has(name)) {
-        showToast(`${name} is not connected to ${currentCity}`);
+      if (calibrating) return;
+      const p = activePlayer();
+      if (name === p.city) return;
+      if (!adjacency[p.city].has(name)) {
+        showToast(`${name} is not connected to ${p.city}`);
         return;
       }
-      currentCity = name;
-      placeToken();
+
+      p.city = name;
+      movesLeft--;
+
+      placeAllTokens();
       updateCityStates();
       highlightConnections();
-      updateInfoPanel();
+      updateHeader();
+
+      if (movesLeft === 0) {
+        setTimeout(advanceTurn, 400);
+      }
+    }
+
+    function endTurn() {
+      if (calibrating) return;
+      advanceTurn();
+    }
+
+    function advanceTurn() {
+      currentPlayerIndex = (currentPlayerIndex + 1) % PLAYERS.length;
+      movesLeft = MOVES_PER_TURN;
+      placeAllTokens();
+      updateCityStates();
+      highlightConnections();
+      updateHeader();
+      showToast(`${activePlayer().name}'s turn`, 'info');
     }
 
     // ── Calibration ──────────────────────────────────────────────────────────
@@ -500,28 +679,25 @@
       btn.textContent = calibrating ? 'Exit Calibrate' : 'Calibrate';
       btn.classList.toggle('active', calibrating);
       document.getElementById('export-btn').style.display = calibrating ? 'inline-block' : 'none';
-      document.getElementById('cal-info').style.display  = calibrating ? 'inline' : 'none';
+      document.getElementById('cal-info').style.display   = calibrating ? 'inline' : 'none';
       coordsEl.style.display = calibrating ? 'block' : 'none';
-      token.style.display = calibrating ? 'none' : 'block';
+      tokensLayer.style.display = calibrating ? 'none' : 'block';
       updateCityStates();
       highlightConnections();
     }
 
-    // Mouse move: show coords in calibration mode
     container.addEventListener('mousemove', e => {
       if (!calibrating) return;
       const rect = container.getBoundingClientRect();
       const x = ((e.clientX - rect.left) / rect.width  * 100).toFixed(2);
       const y = ((e.clientY - rect.top)  / rect.height * 100).toFixed(2);
       coordsEl.textContent = `x: ${x}%  y: ${y}%`;
-
       if (dragState) {
-        const node = dragState.node;
         CITIES[dragState.name].x = parseFloat(x);
         CITIES[dragState.name].y = parseFloat(y);
-        node.style.left = x + '%';
-        node.style.top  = y + '%';
-        renderConnections(); // redraw lines live
+        dragState.node.style.left = x + '%';
+        dragState.node.style.top  = y + '%';
+        renderConnections();
       }
     });
 
@@ -532,30 +708,26 @@
     }
 
     document.addEventListener('mouseup', () => {
-      if (dragState) {
-        dragState.node.classList.remove('dragging');
-        dragState = null;
-      }
+      if (dragState) { dragState.node.classList.remove('dragging'); dragState = null; }
     });
 
-    // Export city coordinates as JSON snippet
     function exportCoords() {
       const lines = Object.entries(CITIES).map(([name, d]) =>
         `  "${name}": { x: ${d.x.toFixed(1)}, y: ${d.y.toFixed(1)}, color: "${d.color}" },`
       );
-      const output = 'const CITIES = {\n' + lines.join('\n') + '\n};';
-      navigator.clipboard.writeText(output).then(() => {
-        showToast('Coordinates copied to clipboard!', true);
-      });
+      navigator.clipboard.writeText('const CITIES = {\n' + lines.join('\n') + '\n};')
+        .then(() => showToast('Coordinates copied!', 'green'));
     }
 
     // ── Init ─────────────────────────────────────────────────────────────────
     renderConnections();
     renderCities();
-    placeToken(false);
+    buildTokens();
+    buildPlayerBadges();
+    placeAllTokens(false);
     updateCityStates();
     highlightConnections();
-    updateInfoPanel();
+    updateHeader();
   </script>
 </body>
 </html>
