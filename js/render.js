@@ -15,27 +15,26 @@
 
 // ponytail: eyeballed from Board.webp — TUNE with the dev console (de-rate/de-outbreaks).
 // Infection Rate: 7 evenly-spaced spaces on a horizontal track.
-const INFECTION_TRACK = { y: 23.1, x0: 64.2, dx: 3.4 }; // space i -> x = x0 + i*dx
-// Outbreaks: 9 spaces on a zigzag; explicit points are simplest given the zigzag.
-const OUTBREAK_TRACK = [ // index 0..8, {x,y} in board %
-  {x:7.9,y:56.3},{x:11.3,y:60.5},{x:7.8,y:64.5},{x:11.3,y:68.5},{x:7.8,y:72.4},
-  {x:11.3,y:76.4},{x:7.8,y:80.4},{x:11.3,y:84.3},{x:7.7,y:88.3},
+const INFECTION_TRACK = { y: 26.8, x0: 70.5, dx: 4.2 }; // space i -> x = x0 + i*dx (SVG board)
+// Outbreaks: SVG board draws a straight vertical track on the left edge.
+const OUTBREAK_TRACK = [ // index 0..8, {x,y} in board % (SVG board)
+  {x:5.2,y:42.4},{x:5.2,y:47.7},{x:5.2,y:53.1},{x:5.2,y:58.5},{x:5.2,y:63.8},
+  {x:5.2,y:69.2},{x:5.2,y:74.6},{x:5.2,y:79.9},{x:5.2,y:85.3},
 ];
-// Cure markers: 4 disease-symbol slots at bottom-center, calibrated to Board.webp.
+// Cure markers: 4 vial slots at bottom-center of the SVG board.
 const CURE_MARKERS = [ // slot per color (uncured start), {color,x,y} board %
-  {color:'yellow', x:34.0, y:93.4},
-  {color:'red',    x:38.4, y:93.4},
-  {color:'blue',   x:42.9, y:93.4},
-  {color:'black',  x:47.3, y:93.4},
+  {color:'blue',   x:41.0, y:92.5},
+  {color:'yellow', x:46.8, y:92.5},
+  {color:'black',  x:52.6, y:92.5},
+  {color:'red',    x:58.4, y:92.5},
 ];
 const CURE_RAISED_DY = 6.4; // board % a cured/eradicated marker rises above its slot.
-// Card-count badges: one per pile, centered on its printed square on Board.webp.
-// key = GameState array to count. x/y in board % — TUNE against the image.
+// Card-count badges: one per pile, centered on its deck slot on the SVG board.
 const PILES = [
-  { key: 'infectionDeck',    x: 67.0, y: 9.5,  label: 'Infection draw pile' },
-  { key: 'infectionDiscard', x: 81.5, y: 9.5,  label: 'Infection discard pile' },
-  { key: 'playerDeck',       x: 65.0, y: 82.0, label: 'Player draw pile' },
-  { key: 'playerDiscard',    x: 75.5, y: 82.0, label: 'Player discard pile' },
+  { key: 'infectionDeck',    x: 75.3, y: 12.6, label: 'Infection draw pile' },
+  { key: 'infectionDiscard', x: 88.8, y: 12.6, label: 'Infection discard pile' },
+  { key: 'playerDeck',       x: 75.3, y: 87.6, label: 'Player draw pile' },
+  { key: 'playerDiscard',    x: 88.8, y: 87.6, label: 'Player discard pile' },
 ];
 
 const Render = {
@@ -155,10 +154,10 @@ const Render = {
       const m = document.createElement('div');
       m.title = label;
       m.style.cssText =
-        'position:absolute; width:15px; height:15px; border-radius:50%;' +
+        'position:absolute; width:26px; height:26px; border-radius:50%;' +
         `left:${x}%; top:${y}%; transform:translate(-50%,-50%);` +
-        'background:#eee; border:2px solid #c0392b;' +
-        'box-shadow:0 0 6px #000, 0 0 3px #fff; pointer-events:none;';
+        'background:rgba(255,255,255,0.12); border:2.5px solid #ffd21e;' +
+        'box-shadow:0 0 10px #ffd21e; pointer-events:none;';
       return m;
     };
     this.markerLayer.innerHTML = '';
