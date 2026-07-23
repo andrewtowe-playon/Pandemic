@@ -105,9 +105,10 @@ All five of us ran Claude sessions in parallel against the same repo. The key in
 - **~3,500 lines** of game + test code
 - **64 passing tests** in CI, including a 25-game invariant-checked fuzz
 - **The full game:** all 8 actions · epidemics with correct resolve order · chained
-  outbreaks · cures & eradication · **all 7 roles** · **all 5 event cards** · hand-limit
-  enforcement · win/loss detection · setup screen · turn summaries · full board UI with
-  pawns, cubes, markers, and pile counts
+  outbreaks · cures & eradication · **all 7 roles with dedicated UI buttons** · **all 5
+  event cards playable at any time, on any player's turn** · hand-limit discard prompt ·
+  win/loss detection · setup screen · turn-end summary popup · full board UI with pawns,
+  cubes, markers, and pile counts
 - **And a kicker:** because rules and flavor are cleanly separated, Tae spec'd a full
   company re-theme — **"PlayOn: Outage Season"** (incidents instead of diseases, an
   On-Call SRE instead of a Medic, All-Hands Crises instead of epidemics, win text
@@ -132,9 +133,10 @@ All five of us ran Claude sessions in parallel against the same repo. The key in
 
 1. `setup.html` — pick players, deal roles (each with real abilities)
 2. Take actions — icon pills; click a highlighted city to move; treat Atlanta
-3. End Turn — watch the draw, an epidemic if we're lucky, infections, turn summary
+3. End Turn — watch the draw, an epidemic if we're lucky, infections, **turn summary popup**
 4. Point out: pile counts on the board, infection-rate & outbreak markers moving
 5. Dev console (⚙ DEV) — force an epidemic → **chained outbreak** on the board
-6. If time: play an event card; show the hand-limit discard prompt
+6. If time: click another player's event card from the **OTHER EVENTS** section — show it
+   fires on a non-active player's turn; show the hand-limit discard prompt at 8 cards
 7. Close on the GitHub Actions run list: 64 tests on every push, still green — and the
    "Outage Season" re-theme as where it goes next
