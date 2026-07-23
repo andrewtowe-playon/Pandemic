@@ -308,6 +308,16 @@ const Controls = {
     const canAct = inActions && GameState.actionsRemaining > 0;
     const player = getCurrentPlayer();
 
+    // Each turn starts with a clean selection. Without this, pendingAction (and
+    // its highlight) carried over from the previous player, so a new player's
+    // action bar showed a stale selection that looked like clicks weren't
+    // registering. Reset to the default 'drive' whenever the active player changes.
+    if (player && player.id !== this._lastPlayerId) {
+      this.pendingAction = 'drive';
+      this._lastPlayerId = player.id;
+      this._clearChoice();
+    }
+
     if (this._moveButtons) {
       Object.keys(this._moveButtons).forEach(key => {
         this._moveButtons[key].classList.toggle('active', key === this.pendingAction);
