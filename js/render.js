@@ -15,11 +15,11 @@
 
 // ponytail: eyeballed from Board.webp — TUNE with the dev console (de-rate/de-outbreaks).
 // Infection Rate: 7 evenly-spaced spaces on a horizontal track.
-const INFECTION_TRACK = { y: 26, x0: 64, dx: 3.7 }; // space i -> x = x0 + i*dx
+const INFECTION_TRACK = { y: 23.1, x0: 64.2, dx: 3.4 }; // space i -> x = x0 + i*dx
 // Outbreaks: 9 spaces on a zigzag; explicit points are simplest given the zigzag.
 const OUTBREAK_TRACK = [ // index 0..8, {x,y} in board %
-  {x:8.5,y:30},{x:5,y:35},{x:8.5,y:40},{x:5,y:45},{x:8.5,y:51},
-  {x:5,y:57},{x:8.5,y:63},{x:5,y:69},{x:6.5,y:76},
+  {x:7.9,y:56.3},{x:11.3,y:60.5},{x:7.8,y:64.5},{x:11.3,y:68.5},{x:7.8,y:72.4},
+  {x:11.3,y:76.4},{x:7.8,y:80.4},{x:11.3,y:84.3},{x:7.7,y:88.3},
 ];
 
 const Render = {
@@ -38,23 +38,6 @@ const Render = {
     this.citiesLayer.parentNode.appendChild(this.markerLayer);
     this.renderConnections();
     this.renderCityNodes();
-    if (location.hash.includes('cal')) this.enableCalibrate();
-  },
-
-  // ponytail: calibration aid — open index.html#cal, click a board spot to read its
-  // {x,y} board-%. Reads coords off Board.webp for the track/city arrays. No-op in play.
-  enableCalibrate() {
-    const box = this.citiesLayer.parentNode;
-    box.addEventListener('click', (e) => {
-      const r = box.getBoundingClientRect();
-      const x = ((e.clientX - r.left) / r.width * 100).toFixed(1);
-      const y = ((e.clientY - r.top) / r.height * 100).toFixed(1);
-      const s = `{x:${x},y:${y}}`;
-      console.log('[cal]', s);
-      if (window.Controls && Controls.toast) Controls.toast(s);
-      if (navigator.clipboard) navigator.clipboard.writeText(s).catch(() => {});
-    });
-    console.log('[cal] calibration mode on — click the board to read {x,y}; copied to clipboard.');
   },
 
   /** Master redraw. Call after every state change. */
