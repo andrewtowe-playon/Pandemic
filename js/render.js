@@ -13,23 +13,55 @@
  * so the view stays free of game logic.
  * ===========================================================================*/
 
+// ponytail: eyeballed from Board.webp — TUNE with the dev console (de-rate/de-outbreaks).
+// Infection Rate: 7 evenly-spaced spaces on a horizontal track.
+const INFECTION_TRACK = { y: 26, x0: 64, dx: 3.7 }; // space i -> x = x0 + i*dx
+// Outbreaks: 9 spaces on a zigzag; explicit points are simplest given the zigzag.
+const OUTBREAK_TRACK = [ // index 0..8, {x,y} in board %
+  {x:8.5,y:30},{x:5,y:35},{x:8.5,y:40},{x:5,y:45},{x:8.5,y:51},
+  {x:5,y:57},{x:8.5,y:63},{x:5,y:69},{x:6.5,y:76},
+];
+
 const Render = {
   svg: null,
   citiesLayer: null,
   pawnLayer: null,
+  markerLayer: null,
 
   init() {
     this.svg = document.getElementById('svg-overlay');
     this.citiesLayer = document.getElementById('cities-layer');
     this.pawnLayer = document.getElementById('pawn-layer');
+    this.markerLayer = document.createElement('div');
+    this.markerLayer.style.cssText =
+      'position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:12;';
+    this.citiesLayer.parentNode.appendChild(this.markerLayer);
     this.renderConnections();
     this.renderCityNodes();
+    if (location.hash.includes('cal')) this.enableCalibrate();
+  },
+
+  // ponytail: calibration aid — open index.html#cal, click a board spot to read its
+  // {x,y} board-%. Reads coords off Board.webp for the track/city arrays. No-op in play.
+  enableCalibrate() {
+    const box = this.citiesLayer.parentNode;
+    box.addEventListener('click', (e) => {
+      const r = box.getBoundingClientRect();
+      const x = ((e.clientX - r.left) / r.width * 100).toFixed(1);
+      const y = ((e.clientY - r.top) / r.height * 100).toFixed(1);
+      const s = `{x:${x},y:${y}}`;
+      console.log('[cal]', s);
+      if (window.Controls && Controls.toast) Controls.toast(s);
+      if (navigator.clipboard) navigator.clipboard.writeText(s).catch(() => {});
+    });
+    console.log('[cal] calibration mode on — click the board to read {x,y}; copied to clipboard.');
   },
 
   /** Master redraw. Call after every state change. */
   render() {
     this.renderCubes();
     this.renderStations();
+    this.renderTrackMarkers();
     this.renderPawns();
     this.renderCityHighlights();
     if (window.Controls && Controls.renderPanels) Controls.renderPanels();
@@ -114,6 +146,28 @@ const Render = {
       if (!holder) return;
       holder.textContent = cityState.station ? '⌂' : ''; // ⌂ house glyph
     });
+  },
+
+  /** Place the infection-rate + outbreak markers on their printed tracks. */
+  renderTrackMarkers() {
+    const mk = (x, y, label) => {
+      const m = document.createElement('div');
+      m.title = label;
+      m.style.cssText =
+        'position:absolute; width:15px; height:15px; border-radius:50%;' +
+        `left:${x}%; top:${y}%; transform:translate(-50%,-50%);` +
+        'background:#eee; border:2px solid #c0392b;' +
+        'box-shadow:0 0 6px #000, 0 0 3px #fff; pointer-events:none;';
+      return m;
+    };
+    this.markerLayer.innerHTML = '';
+    const ri = Math.min(GameState.infectionRateIndex, 6);
+    this.markerLayer.appendChild(mk(
+      INFECTION_TRACK.x0 + ri * INFECTION_TRACK.dx, INFECTION_TRACK.y,
+      `Infection rate: ${getInfectionRate()}`));
+    const ob = OUTBREAK_TRACK[Math.min(GameState.outbreaks, 8)];
+    this.markerLayer.appendChild(mk(ob.x, ob.y,
+      `Outbreaks: ${GameState.outbreaks}/${MAX_OUTBREAKS}`));
   },
 
   /** Draw one pawn per player at their location (offset when co-located). */
