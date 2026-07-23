@@ -114,11 +114,42 @@
       font-size: 0.82rem; overflow-y: auto; max-height: calc(100vh - 50px);
     }
     #sidebar h2 { font-size: 0.9rem; color: #6af; margin: 10px 0 6px; letter-spacing: 2px; }
-    #action-buttons button, #turn-buttons button {
-      margin: 2px; padding: 5px 9px; font-size: 0.75rem; cursor: pointer;
-      background: #16224a; color: #cce; border: 1px solid #335; border-radius: 4px;
+    /* Action pills: fixed-size grid, 3 across, icon over label. */
+    #action-buttons {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+      margin-top: 4px;
     }
-    #action-buttons button.active { background: #2a56b0; border-color: #6af; }
+    #action-buttons button {
+      height: 44px;            /* fixed height (~40% shorter than before) */
+      width: 100%;             /* fixed width via the 3-col grid track */
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+      padding: 3px 4px;
+      cursor: pointer;
+      background: #16224a; color: #cce;
+      border: 1px solid #335; border-radius: 7px;
+      font-size: 0.66rem; line-height: 1.1; text-align: center;
+      transition: background 0.12s, border-color 0.12s, transform 0.08s;
+    }
+    #action-buttons button:hover { background: #1d2c5c; border-color: #4a6; transform: translateY(-1px); }
+    #action-buttons button .pill-icon { color: #7ab8ff; line-height: 0; }
+    #action-buttons button .pill-icon svg { width: 17px; height: 17px; display: block; }
+    #action-buttons button .pill-label { display: block; }
+    #action-buttons button.active {
+      background: #2a56b0; border-color: #6af; box-shadow: 0 0 8px rgba(106,170,255,0.5);
+    }
+    #action-buttons button.active .pill-icon { color: #cfe6ff; }
+    /* The contextual sub-choice row spans the full grid width. */
+    #action-buttons #action-choice { grid-column: 1 / -1; }
+    #turn-buttons button {
+      margin: 2px; padding: 6px 12px; font-size: 0.8rem; cursor: pointer;
+      background: #16224a; color: #cce; border: 1px solid #335; border-radius: 6px;
+    }
     #log { font-size: 0.72rem; color: #99b; max-height: 160px; overflow-y: auto; }
 
     /* ── dev console ─────────────────────────────────────────────────── */
