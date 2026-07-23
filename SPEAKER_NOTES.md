@@ -1,8 +1,8 @@
 # Speaker Notes — 5:00 total
 
 > Full narrative + numbers: [PRESENTATION.md](PRESENTATION.md).
-> **Prep before walking up:** game open on the setup screen · dev console (⚙ DEV) tested
-> once · GitHub Actions tab in a background browser tab.
+> **Prep before walking up:** game open on the setup screen (PlayOn: Outage Season title
+> visible) · dev console (⚙ DEV) tested once · GitHub Actions tab in a background tab.
 
 ---
 
@@ -43,23 +43,27 @@
 
 ## 2:00 — DEMO *(~2:15)*
 
-1. **Setup screen** → deal roles — *"every role ability is real and tested."*
-2. **Take a turn** — click a highlighted city to move, Treat Atlanta — *"legal moves only;
+1. **Setup screen** → point at the title: *"PlayOn: Outage Season — same engine, company
+   re-theme."* Deal roles — *"On-Call Engineer, Platform Engineer, Finance… every ability
+   is real and tested."*
+2. **Take a turn** — click a highlighted city to move, Resolve Atlanta — *"legal moves only;
    the engine validates everything."*
-3. **End Turn** → draw, infect, turn summary — *point at pile counts ticking down.*
+3. **End Turn** → draw, infect, turn summary — *point at pile counts ticking down, labels
+   say Platform / Payments / Security / Support.*
 4. **⚙ DEV → force epidemic** → chained outbreak cascades across the board — *"this chain
-   reaction is the hardest rule in the game — it's fuzz-tested across 25 full games every
-   push."*
-5. *(If time)* play an event card / show the discard prompt at 8 cards.
+   reaction is the hardest rule in the game — fuzz-tested across 25 full games every push."*
+5. *(If time)* play a Code Freeze or Budget Approval initiative card / show the discard
+   prompt at 8 tickets.
 
 ## 4:15 — Close *(~45s)*
 
 > Everything you just saw was built in one afternoon by people who didn't know this game —
 > **64 green tests, on every push, right now.** *(flip to Actions tab, one beat)*
 
-> And because rules and flavor are cleanly separated, Tae already spec'd the sequel:
-> **"PlayOn: Outage Season"** — incidents instead of diseases, an On-Call SRE instead of a
-> Medic, and the win screen says **"SHIPPED."** That's a text-swap away.
+> And because rules and flavor are cleanly separated, Tae already **shipped** the reskin:
+> **"PlayOn: Outage Season"** — incidents instead of diseases, an On-Call Engineer instead
+> of a Medic, and the win screen says **"SHIPPED."** Zero mechanic changes. Pure text-swap.
+> It's live. You just played it.
 
 > The lesson we're taking with us: give AI shared context and a lane, the same as any
 > teammate — and it stops being autocomplete and starts being a force multiplier.
