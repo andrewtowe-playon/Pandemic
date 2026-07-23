@@ -15,12 +15,9 @@
 
 // ponytail: eyeballed from Board.webp — TUNE with the dev console (de-rate/de-outbreaks).
 // Infection Rate: 7 evenly-spaced spaces on a horizontal track.
-const INFECTION_TRACK = { y: 23.1, x0: 64.2, dx: 3.4 }; // space i -> x = x0 + i*dx
+const INFECTION_TRACK = { y: 26.8, x0: 70.5, dx: 4.2 }; // synced to SVG board // space i -> x = x0 + i*dx
 // Outbreaks: 9 spaces on a zigzag; explicit points are simplest given the zigzag.
-const OUTBREAK_TRACK = [ // index 0..8, {x,y} in board %
-  {x:7.9,y:56.3},{x:11.3,y:60.5},{x:7.8,y:64.5},{x:11.3,y:68.5},{x:7.8,y:72.4},
-  {x:11.3,y:76.4},{x:7.8,y:80.4},{x:11.3,y:84.3},{x:7.7,y:88.3},
-];
+const OUTBREAK_TRACK = [{x:5.2,y:42.4},{x:5.2,y:47.7},{x:5.2,y:53.1},{x:5.2,y:58.5},{x:5.2,y:63.8},{x:5.2,y:69.2},{x:5.2,y:74.6},{x:5.2,y:79.9},{x:5.2,y:85.3}]; // synced to SVG board
 
 const Render = {
   svg: null,
@@ -137,10 +134,10 @@ const Render = {
       const m = document.createElement('div');
       m.title = label;
       m.style.cssText =
-        'position:absolute; width:15px; height:15px; border-radius:50%;' +
+        'position:absolute; width:26px; height:26px; border-radius:50%;' +
         `left:${x}%; top:${y}%; transform:translate(-50%,-50%);` +
-        'background:#eee; border:2px solid #c0392b;' +
-        'box-shadow:0 0 6px #000, 0 0 3px #fff; pointer-events:none;';
+        'background:rgba(255,255,255,0.12); border:2.5px solid #ffd21e;' +
+        'box-shadow:0 0 10px #ffd21e; pointer-events:none;';
       return m;
     };
     this.markerLayer.innerHTML = '';
