@@ -6,6 +6,7 @@
  * ===========================================================================*/
 const { runEngineTests } = require('./engine.test');
 const { runRulesAuditTests } = require('./rules-audit.test');
+const { runPlaythroughTests } = require('./playthrough.test');
 const { runAutoplay } = require('./autoplay');
 
 function report(title, results, note) {
@@ -24,6 +25,8 @@ let totalFailed = 0;
 try {
   totalFailed += report('Engine mechanics', runEngineTests());
   totalFailed += report('Rules audit regressions', runRulesAuditTests());
+  const pt = runPlaythroughTests();
+  totalFailed += report('End-to-end playthrough', pt.results, pt.note);
   const auto = runAutoplay(25);
   totalFailed += report('Autoplay continuity', auto.results, auto.note);
 } catch (e) {

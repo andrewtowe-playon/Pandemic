@@ -94,10 +94,17 @@ npm test          # or: node test/run.js
 Dependency-free Node harness (`test/`) that loads the real modules with a DOM shim:
 - **`engine.test.js`** — scenario assertions for mechanics (setup, legal/illegal actions,
   a full ACTIONS→DRAW→INFECT→next cycle, loss path).
+- **`rules-audit.test.js`** — regression tests for every audit fix (events, cure, share,
+  Medic passive, role actions), so none silently regress.
+- **`playthrough.test.js`** — a codified end-to-end game on a fixed seed, driven through the
+  **real UI entry points** (`Controls.onCityClick`, `Game.endActionsPhase`): setup → click-
+  to-drive → turn loop → epidemic → outbreak → loss, asserting the end-game hook fired. This
+  mirrors the manual browser playtest. (Logic-level; DOM is shimmed — real-pixel/console
+  coverage would need Playwright, a documented post-hackathon add.)
 - **`autoplay.js`** — a bot plays full games checking invariants every turn: cube
   conservation (supply+board=24 per color), never >3 cubes/city, outbreaks ∈ [0,8],
-  infection deck always totals 48, and every game terminates. Deep autoplay auto-enables
-  once `cards.js` deck-dealing is implemented.
+  infection deck always totals 48, and every game terminates. Runs on per-game seeds so it's
+  varied but reproducible.
 
 Exits non-zero on failure. This is how we keep five people committing in parallel without
 silent regressions.
