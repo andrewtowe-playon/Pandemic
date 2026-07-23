@@ -5,6 +5,7 @@
  * exits non-zero if anything failed. Run this before committing.
  * ===========================================================================*/
 const { runEngineTests } = require('./engine.test');
+const { runRulesAuditTests } = require('./rules-audit.test');
 const { runAutoplay } = require('./autoplay');
 
 function report(title, results, note) {
@@ -22,6 +23,7 @@ let totalFailed = 0;
 
 try {
   totalFailed += report('Engine mechanics', runEngineTests());
+  totalFailed += report('Rules audit regressions', runRulesAuditTests());
   const auto = runAutoplay(25);
   totalFailed += report('Autoplay continuity', auto.results, auto.note);
 } catch (e) {

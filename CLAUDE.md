@@ -99,8 +99,19 @@ Dependency-free Node harness (`test/`) that loads the real modules with a DOM sh
   infection deck always totals 48, and every game terminates. Deep autoplay auto-enables
   once `cards.js` deck-dealing is implemented.
 
-Exits non-zero on failure. If you add a mechanic, add an assertion. This is how we keep five
-people committing in parallel without silent regressions.
+Exits non-zero on failure. This is how we keep five people committing in parallel without
+silent regressions.
+
+**Changes ship with tests.** Whenever you change or fix game behavior, add a test in the
+same commit:
+- **New mechanic or role ability** → scenario assertions in `test/engine.test.js`
+  (or a new `test/*.test.js` wired into `test/run.js`).
+- **Bug fix** → a regression test in `test/rules-audit.test.js` that fails without the fix
+  and passes with it (this is how all audit fixes are locked in).
+- **Rules-relevant refactor** → run the suite; if coverage didn't exist for what you
+  touched, add it.
+UI-only tweaks (CSS, layout, labels) don't need tests. If a change genuinely can't be
+tested headlessly, say so in the commit message rather than skipping silently.
 
 ### Recent structural decisions (so you're not surprised)
 

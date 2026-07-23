@@ -220,7 +220,8 @@ const GameState = {
   difficulty: 'standard',
 
   // players: [{ id, name, role, location, hand: [card],
-  //             storedEvent: card|null }]  // storedEvent: Contingency Planner only
+  //             storedEvent: card|null,    // Contingency Planner only
+  //             usedOpsMove: bool }]       // Operations Expert only; reset each turn
   players: [],
   currentPlayerIndex: 0,
   actionsRemaining: 4,
