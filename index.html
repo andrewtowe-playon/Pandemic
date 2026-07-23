@@ -45,26 +45,64 @@
     #info-panel strong { color: gold; font-weight: normal; }
     #valid-moves-list { color: #5bf; }
 
-    #transpacific-note {
+    #new-game-btn {
       margin-left: auto;
-      font-size: 0.75rem;
-      color: #668;
-      font-style: italic;
+      font-size: 0.78rem;
+      color: #9cf;
+      text-decoration: none;
+      border: 1px solid #2a3a66;
+      border-radius: 6px;
+      padding: 6px 12px;
+      transition: all 0.15s;
+      white-space: nowrap;
     }
+    #new-game-btn:hover { border-color: #4af; color: #dff; background: rgba(70,150,255,0.15); }
+
+    #roster {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      padding: 6px 20px;
+      width: 100%;
+    }
+    .roster-chip {
+      display: flex;
+      flex-direction: column;
+      padding: 5px 12px;
+      border-radius: 6px;
+      background: rgba(10,14,40,0.7);
+      border-left: 4px solid var(--rc, #6af);
+      font-size: 0.72rem;
+      line-height: 1.3;
+    }
+    .roster-chip .rc-name { color: #dff; }
+    .roster-chip .rc-role { color: var(--rc, #6af); }
 
     #board-container {
       position: relative;
       width: 98vw;
       max-width: 1400px;
       margin: 6px 0;
+      aspect-ratio: 100 / 58;
+      border: 1px solid #1a2340;
+      border-radius: 8px;
+      overflow: hidden;
+      background:
+        radial-gradient(ellipse at 30% 20%, rgba(30,60,120,0.35), transparent 60%),
+        radial-gradient(ellipse at 75% 75%, rgba(20,50,90,0.35), transparent 55%),
+        linear-gradient(180deg, #071023 0%, #04101f 100%);
     }
 
-    #board-img {
-      display: block;
-      width: 100%;
-      height: auto;
-      user-select: none;
-      -webkit-user-drag: none;
+    #map-bg {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      pointer-events: none;
+    }
+    .land {
+      fill: rgba(70,92,74,0.55);
+      stroke: rgba(150,180,150,0.25);
+      stroke-width: 0.3;
     }
 
     #svg-overlay {
@@ -191,14 +229,38 @@
   <header>
     <h1>PANDEMIC</h1>
     <div id="info-panel">
+      <span>Difficulty: <strong id="s-difficulty">—</strong></span>
+      <span>Players: <strong id="s-players">—</strong></span>
+      <span>Infection Rate: <strong id="s-rate">2</strong></span>
+      <span>Outbreaks: <strong id="s-outbreaks">0</strong></span>
       <span>Location: <strong id="current-city">Atlanta</strong></span>
       <span>Move to: <span id="valid-moves-list">—</span></span>
     </div>
-    <div id="transpacific-note">* Trans-Pacific: SF ↔ Tokyo, SF ↔ Manila, LA ↔ Sydney</div>
+    <a id="new-game-btn" href="setup.html">＋ New Game</a>
   </header>
 
+  <div id="roster"></div>
+
   <div id="board-container">
-    <img id="board-img" src="Board.webp" alt="Pandemic Board" draggable="false">
+    <svg id="map-bg" viewBox="0 0 100 100" preserveAspectRatio="none">
+      <!-- Stylized continents, drawn in the same 0–100 coordinate space as the cities -->
+      <!-- North America -->
+      <path class="land" d="M5,22 C4,30 6,40 9,46 C11,52 14,54 16,50 L20,46 L24,40 L25,30 L23,22 C18,18 10,18 5,22 Z"/>
+      <!-- South America -->
+      <path class="land" d="M15,55 C12,60 12,68 14,76 C15,80 20,80 22,76 L26,68 L24,60 L20,55 C18,53 16,53 15,55 Z"/>
+      <!-- Europe -->
+      <path class="land" d="M33,14 L53,12 L55,20 L48,28 L42,30 L36,31 L33,24 Z"/>
+      <!-- Africa -->
+      <path class="land" d="M36,38 L50,36 L53,48 L48,58 L46,70 L42,73 L38,64 L36,54 L35,44 Z"/>
+      <!-- Asia (Middle East → East Asia) -->
+      <path class="land" d="M50,15 L70,14 L84,22 L84,34 L78,41 L70,45 L66,42 L64,52 L60,50 L56,44 L52,40 L48,34 L46,26 L48,18 Z"/>
+      <!-- Southeast Asia / Indonesia -->
+      <path class="land" d="M70,50 L82,50 L80,60 L74,63 L70,56 Z"/>
+      <!-- Japan -->
+      <path class="land" d="M80,26 L85,28 L83,37 L80,34 Z"/>
+      <!-- Australia -->
+      <path class="land" d="M80,63 L89,63 L89,72 L82,73 L80,68 Z"/>
+    </svg>
     <svg id="svg-overlay" viewBox="0 0 100 100" preserveAspectRatio="none"></svg>
     <div id="cities-layer"></div>
     <div id="token"></div>
@@ -449,7 +511,37 @@
       updateInfoPanel();
     }
 
+    // ── Load settings from the setup screen ────────────────────────────────────
+    function loadSettings() {
+      let settings = null;
+      try { settings = JSON.parse(localStorage.getItem('pandemicSettings')); }
+      catch (e) { settings = null; }
+
+      // No settings yet → send the player to the setup screen first.
+      if (!settings) {
+        window.location.replace('setup.html');
+        return;
+      }
+
+      document.getElementById('s-difficulty').textContent =
+        `${settings.difficulty} (${settings.numEpidemics} epidemics)`;
+      document.getElementById('s-players').textContent = settings.numPlayers;
+      document.getElementById('s-rate').textContent = settings.infectionRate;
+      document.getElementById('s-outbreaks').textContent = settings.outbreaks;
+
+      const roster = document.getElementById('roster');
+      roster.innerHTML = '';
+      settings.players.forEach(p => {
+        const chip = document.createElement('div');
+        chip.className = 'roster-chip';
+        chip.style.setProperty('--rc', p.color);
+        chip.innerHTML = `<span class="rc-name">${p.name}</span><span class="rc-role">${p.role}</span>`;
+        roster.appendChild(chip);
+      });
+    }
+
     // ── Init ─────────────────────────────────────────────────────────────────
+    loadSettings();
     renderConnections();
     renderCities();
     placeToken();
