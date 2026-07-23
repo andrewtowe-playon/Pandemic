@@ -60,6 +60,10 @@ const Controls = {
     exchange: '<path d="M7 7h9V4l5 5-5 5v-3H7V7zm10 10H8v3l-5-5 5-5v3h9v4z"/>',
     // Retrieve Event — download into tray
     download: '<path d="M11 3h2v7h3l-4 4-4-4h3V3zM5 18h14v2H5z"/>',
+    // Ops Expert special move — lightning bolt
+    zap:      '<path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>',
+    // Dispatcher move-pawn-to-pawn — two people with arrow
+    people:   '<path d="M16 11c1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3 1.34 3 3 3zM8 11c1.66 0 3-1.34 3-3S9.66 5 8 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5C15 15.17 10.33 14 8 14zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/>',
   },
 
   /** Build a fixed-size action pill: inline-SVG icon on top, label below. */
@@ -118,6 +122,22 @@ const Controls = {
     cpBtn.addEventListener('click', () => this._doRetrieve());
     container.appendChild(cpBtn);
     this._cpBtn = cpBtn;
+
+    // Operations Expert role button (hidden for other roles).
+    const opsBtn = this._makePill('zap', 'OpsExpert Move');
+    opsBtn.title = 'Operations Expert: move from a station to any city by discarding any city card (once/turn)';
+    opsBtn.style.display = 'none';
+    opsBtn.addEventListener('click', () => this._doOpsMove());
+    container.appendChild(opsBtn);
+    this._opsBtn = opsBtn;
+
+    // Dispatcher role button (hidden for other roles).
+    const dispBtn = this._makePill('people', 'Move Pawn to Pawn');
+    dispBtn.title = 'Dispatcher: move any pawn to a city containing another pawn (1 action)';
+    dispBtn.style.display = 'none';
+    dispBtn.addEventListener('click', () => this._doDispatchPawnToPawn());
+    container.appendChild(dispBtn);
+    this._dispBtn = dispBtn;
 
     // Contextual sub-choice row (e.g. "treat which color?").
     const choice = document.createElement('div');
@@ -194,6 +214,66 @@ const Controls = {
     this._showChoice('Cure which color?', curable.map(c => ({
       label: c, color: COLOR_HEX[c], onClick: () => cure(c),
     })));
+  },
+
+  /** Operations Expert: move from a station to any city, discarding any city card. */
+  _doOpsMove() {
+    const player = getCurrentPlayer();
+    if (!this._ensureActionable()) return;
+    if (player.role !== 'Operations Expert')
+      return this.toast('Operations Expert only');
+    if (player.usedOpsMove)
+      return this.toast('Already used this turn');
+    if (!GameState.cities[player.location] || !GameState.cities[player.location].station)
+      return this.toast('Must be at a research station to use this move');
+    const cityCards = player.hand.filter(c => c.type === 'city');
+    if (!cityCards.length)
+      return this.toast('No city cards in hand to discard');
+    const dests = Object.keys(CITIES).filter(c => c !== player.location);
+    // Step 1: pick destination.
+    this._showChoice('Ops Expert Move: choose destination city', dests.map(c => ({
+      label: c,
+      onClick: () => {
+        // Step 2: pick card to discard.
+        this._showChoice(`Ops Expert Move → ${c}: discard which city card?`,
+          cityCards.map(card => ({
+            label: card.city,
+            color: COLOR_HEX[card.color],
+            onClick: () => this._act(Rules.opsExpertMove(player, c, card)),
+          }))
+        );
+      },
+    })));
+  },
+
+  /** Dispatcher: move any pawn to a city that contains another pawn. */
+  _doDispatchPawnToPawn() {
+    const dispatcher = getCurrentPlayer();
+    if (!this._ensureActionable()) return;
+    if (dispatcher.role !== 'Dispatcher')
+      return this.toast('Dispatcher only');
+    const others = GameState.players.filter(p => p !== dispatcher);
+    if (!others.length) return this.toast('No other players');
+    // Step 1: pick the pawn to move.
+    this._showChoice('Dispatcher: choose pawn to move',
+      GameState.players.map(target => ({
+        label: `${target.name} (${target.role}) @ ${target.location}`,
+        onClick: () => {
+          // Step 2: pick the destination pawn (must be in a different city).
+          const dests = GameState.players.filter(p => p.location !== target.location);
+          if (!dests.length)
+            return this.toast('No other pawn in a different city');
+          this._showChoice(`Move ${target.name} to which pawn?`,
+            dests.map(dest => ({
+              label: `${dest.name} @ ${dest.location}`,
+              onClick: () => this._act(
+                Rules.dispatcherMoveToPawn(dispatcher, target.id, dest.id)
+              ),
+            }))
+          );
+        },
+      }))
+    );
   },
 
   /** Contingency Planner: pick an event card from the player discard to store. */
@@ -324,11 +404,13 @@ const Controls = {
       });
     }
 
-    // Show Retrieve Event only for the Contingency Planner.
-    if (this._cpBtn) {
-      const isCP = player && player.role === 'Contingency Planner';
-      this._cpBtn.style.display = isCP ? '' : 'none';
-    }
+    // Show role-specific buttons only for the matching role.
+    if (this._cpBtn)
+      this._cpBtn.style.display = (player && player.role === 'Contingency Planner') ? '' : 'none';
+    if (this._opsBtn)
+      this._opsBtn.style.display = (player && player.role === 'Operations Expert') ? '' : 'none';
+    if (this._dispBtn)
+      this._dispBtn.style.display = (player && player.role === 'Dispatcher') ? '' : 'none';
 
     const container = document.getElementById('action-buttons');
     if (container) {
