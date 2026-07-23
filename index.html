@@ -20,15 +20,16 @@
     header {
       display: flex;
       align-items: center;
-      gap: 20px;
-      padding: 8px 20px;
+      gap: 14px;
+      padding: 7px 16px;
       width: 100%;
-      background: rgba(0,0,30,0.8);
+      background: rgba(0,0,30,0.9);
       border-bottom: 1px solid #224;
+      flex-wrap: wrap;
     }
 
     header h1 {
-      font-size: 1.3rem;
+      font-size: 1.2rem;
       letter-spacing: 4px;
       color: #6af;
       text-shadow: 0 0 12px #4af;
@@ -36,19 +37,42 @@
 
     #info-panel {
       display: flex;
-      gap: 20px;
-      font-size: 0.82rem;
+      gap: 16px;
+      font-size: 0.8rem;
       flex-wrap: wrap;
     }
-
     #info-panel span { color: #aab; }
     #info-panel strong { color: gold; font-weight: normal; }
     #valid-moves-list { color: #5bf; }
 
+    button {
+      padding: 4px 12px;
+      border-radius: 5px;
+      border: 1px solid #446;
+      background: #223;
+      color: #aac;
+      cursor: pointer;
+      font-size: 0.78rem;
+      font-family: inherit;
+    }
+    button:hover { background: #334; }
+
+    #cal-btn.active { background: #442200; border-color: orange; color: orange; }
+
+    #export-btn { display: none; background: #143; border-color: #4a4; color: #8f8; }
+    #export-btn:hover { background: #164; }
+
+    #cal-info {
+      display: none;
+      font-size: 0.75rem;
+      color: #a80;
+      font-style: italic;
+    }
+
     #transpacific-note {
       margin-left: auto;
-      font-size: 0.75rem;
-      color: #668;
+      font-size: 0.72rem;
+      color: #557;
       font-style: italic;
     }
 
@@ -80,7 +104,6 @@
       stroke-width: 0.8;
       fill: none;
     }
-
     .conn-active {
       stroke: rgba(255,220,50,0.55);
       stroke-width: 1.5;
@@ -97,7 +120,6 @@
     .city-node {
       position: absolute;
       transform: translate(-50%, -50%);
-      cursor: default;
       pointer-events: all;
       z-index: 5;
     }
@@ -123,17 +145,13 @@
       line-height: 1;
     }
 
-    /* State: current city */
+    /* Game states */
     .city-node.current .dot {
       border-color: gold;
       box-shadow: 0 0 10px gold, 0 0 4px #ffa;
       transform: scale(1.2);
     }
-
-    /* State: valid move */
-    .city-node.valid-move {
-      cursor: pointer;
-    }
+    .city-node.valid-move { cursor: pointer; }
     .city-node.valid-move .dot {
       border-color: #fff;
       animation: pulse 0.85s ease-in-out infinite alternate;
@@ -142,15 +160,40 @@
       transform: scale(1.5);
       box-shadow: 0 0 14px #fff;
     }
-
-    /* State: invalid (clickable but blocked) */
-    .city-node.invalid {
-      cursor: not-allowed;
-    }
+    .city-node.invalid { cursor: not-allowed; }
 
     @keyframes pulse {
       from { box-shadow: 0 0 3px rgba(255,255,255,0.4); }
       to   { box-shadow: 0 0 14px rgba(255,255,255,0.95); transform: scale(1.25); }
+    }
+
+    /* Calibration states */
+    body.calibrating .city-node { cursor: grab; }
+    body.calibrating .city-node:active { cursor: grabbing; }
+    body.calibrating .city-node .dot {
+      animation: none !important;
+      border-color: orange !important;
+      box-shadow: 0 0 6px orange !important;
+      transform: none !important;
+    }
+    body.calibrating .city-node.dragging .dot {
+      box-shadow: 0 0 14px #fff, 0 0 6px orange !important;
+      transform: scale(1.4) !important;
+    }
+
+    /* Crosshair coords display */
+    #coords-display {
+      display: none;
+      position: absolute;
+      top: 4px; right: 4px;
+      background: rgba(0,0,0,0.75);
+      color: #fa0;
+      font-size: 11px;
+      padding: 3px 8px;
+      border-radius: 4px;
+      pointer-events: none;
+      z-index: 50;
+      font-family: monospace;
     }
 
     #token {
@@ -184,6 +227,7 @@
       z-index: 100;
     }
     #toast.show { opacity: 1; }
+    #toast.green { background: rgba(30,140,30,0.9); }
   </style>
 </head>
 <body>
@@ -194,99 +238,91 @@
       <span>Location: <strong id="current-city">Atlanta</strong></span>
       <span>Move to: <span id="valid-moves-list">—</span></span>
     </div>
-    <div id="transpacific-note">* Trans-Pacific: SF ↔ Tokyo, SF ↔ Manila, LA ↔ Sydney</div>
+    <button id="cal-btn" onclick="toggleCalibration()">Calibrate</button>
+    <button id="export-btn" onclick="exportCoords()">Copy Coordinates</button>
+    <span id="cal-info">Drag dots to correct positions, then click Copy Coordinates</span>
+    <div id="transpacific-note">Trans-Pacific: SF ↔ Tokyo, SF ↔ Manila, LA ↔ Sydney</div>
   </header>
 
   <div id="board-container">
     <img id="board-img" src="Board.webp" alt="Pandemic Board" draggable="false">
     <svg id="svg-overlay" viewBox="0 0 100 100" preserveAspectRatio="none"></svg>
     <div id="cities-layer"></div>
+    <div id="coords-display">x: 0.00%  y: 0.00%</div>
     <div id="token"></div>
   </div>
 
-  <div id="toast">Not a connected city</div>
+  <div id="toast"></div>
 
   <script>
-    // ── City definitions: x/y as % of board image width/height ─────────────
+    // ── City definitions ─────────────────────────────────────────────────────
     const CITIES = {
-      // Blue — North America
-      "San Francisco":    { x:  7.5, y: 37.5, color: "#3399ff" },
-      "Chicago":          { x: 14.0, y: 30.0, color: "#3399ff" },
-      "Atlanta":          { x: 16.0, y: 41.0, color: "#3399ff" },
-      "Montreal":         { x: 19.5, y: 26.5, color: "#3399ff" },
-      "Washington":       { x: 21.0, y: 35.5, color: "#3399ff" },
-      "New York":         { x: 23.5, y: 28.0, color: "#3399ff" },
-      // Blue — Europe
-      "London":           { x: 37.0, y: 20.0, color: "#3399ff" },
-      "Essen":            { x: 43.0, y: 17.0, color: "#3399ff" },
-      "St. Petersburg":   { x: 52.0, y: 15.0, color: "#3399ff" },
-      "Madrid":           { x: 35.0, y: 33.0, color: "#3399ff" },
-      "Paris":            { x: 41.5, y: 24.0, color: "#3399ff" },
-      "Milan":            { x: 46.0, y: 23.0, color: "#3399ff" },
+      "San Francisco":    { x:  8.2, y: 34.7, color: "#3399ff" },
+      "Chicago":          { x: 17.1, y: 31.4, color: "#3399ff" },
+      "Atlanta":          { x: 19.9, y: 38.3, color: "#3399ff" },
+      "Montreal":         { x: 24.2, y: 30.9, color: "#3399ff" },
+      "Washington":       { x: 27.0, y: 37.7, color: "#3399ff" },
+      "New York":         { x: 29.3, y: 31.8, color: "#3399ff" },
+      "London":           { x: 42.4, y: 26.2, color: "#3399ff" },
+      "Essen":            { x: 49.0, y: 24.3, color: "#3399ff" },
+      "St. Petersburg":   { x: 56.5, y: 22.3, color: "#3399ff" },
+      "Madrid":           { x: 41.6, y: 35.6, color: "#3399ff" },
+      "Paris":            { x: 47.4, y: 31.6, color: "#3399ff" },
+      "Milan":            { x: 51.5, y: 29.2, color: "#3399ff" },
 
-      // Yellow — Americas
-      "Los Angeles":      { x:  7.5, y: 45.5, color: "#ffcc00" },
-      "Mexico City":      { x: 11.0, y: 50.0, color: "#ffcc00" },
-      "Miami":            { x: 18.0, y: 46.5, color: "#ffcc00" },
-      "Bogota":           { x: 18.0, y: 57.0, color: "#ffcc00" },
-      "Lima":             { x: 14.0, y: 67.0, color: "#ffcc00" },
-      "Santiago":         { x: 14.0, y: 77.0, color: "#ffcc00" },
-      "Buenos Aires":     { x: 20.0, y: 74.0, color: "#ffcc00" },
-      "Sao Paulo":        { x: 25.0, y: 69.0, color: "#ffcc00" },
-      // Yellow — Africa
-      "Lagos":            { x: 38.5, y: 57.0, color: "#ffcc00" },
-      "Kinshasa":         { x: 43.0, y: 63.5, color: "#ffcc00" },
-      "Khartoum":         { x: 47.5, y: 53.0, color: "#ffcc00" },
-      "Johannesburg":     { x: 45.0, y: 72.0, color: "#ffcc00" },
+      "Los Angeles":      { x:  9.6, y: 44.8, color: "#ffcc00" },
+      "Mexico City":      { x: 16.1, y: 47.9, color: "#ffcc00" },
+      "Miami":            { x: 24.2, y: 46.5, color: "#ffcc00" },
+      "Bogota":           { x: 23.6, y: 56.8, color: "#ffcc00" },
+      "Lima":             { x: 21.4, y: 66.7, color: "#ffcc00" },
+      "Santiago":         { x: 22.0, y: 77.5, color: "#ffcc00" },
+      "Buenos Aires":     { x: 29.4, y: 75.7, color: "#ffcc00" },
+      "Sao Paulo":        { x: 33.7, y: 68.3, color: "#ffcc00" },
+      "Lagos":            { x: 47.1, y: 54.4, color: "#ffcc00" },
+      "Kinshasa":         { x: 50.8, y: 61.0, color: "#ffcc00" },
+      "Khartoum":         { x: 55.1, y: 52.7, color: "#ffcc00" },
+      "Johannesburg":     { x: 55.3, y: 71.9, color: "#ffcc00" },
 
-      // Black — Middle East / South Asia
-      "Algiers":          { x: 40.5, y: 35.5, color: "#bbbbbb" },
-      "Cairo":            { x: 47.0, y: 38.0, color: "#bbbbbb" },
-      "Istanbul":         { x: 48.5, y: 27.0, color: "#bbbbbb" },
-      "Moscow":           { x: 52.5, y: 21.0, color: "#bbbbbb" },
-      "Baghdad":          { x: 53.5, y: 35.0, color: "#bbbbbb" },
-      "Tehran":           { x: 56.5, y: 28.0, color: "#bbbbbb" },
-      "Riyadh":           { x: 53.5, y: 44.0, color: "#bbbbbb" },
-      "Karachi":          { x: 58.0, y: 40.0, color: "#bbbbbb" },
-      "Delhi":            { x: 63.0, y: 36.5, color: "#bbbbbb" },
-      "Mumbai":           { x: 60.0, y: 48.0, color: "#bbbbbb" },
-      "Chennai":          { x: 64.0, y: 54.0, color: "#bbbbbb" },
-      "Kolkata":          { x: 68.5, y: 43.0, color: "#bbbbbb" },
+      "Algiers":          { x: 49.2, y: 41.1, color: "#bbbbbb" },
+      "Cairo":            { x: 54.0, y: 43.1, color: "#bbbbbb" },
+      "Istanbul":         { x: 55.2, y: 34.7, color: "#bbbbbb" },
+      "Moscow":           { x: 60.3, y: 29.0, color: "#bbbbbb" },
+      "Baghdad":          { x: 59.9, y: 39.5, color: "#bbbbbb" },
+      "Tehran":           { x: 64.6, y: 32.8, color: "#bbbbbb" },
+      "Riyadh":           { x: 60.9, y: 49.1, color: "#bbbbbb" },
+      "Karachi":          { x: 66.1, y: 42.5, color: "#bbbbbb" },
+      "Delhi":            { x: 71.7, y: 40.4, color: "#bbbbbb" },
+      "Mumbai":           { x: 67.6, y: 50.5, color: "#bbbbbb" },
+      "Chennai":          { x: 73.0, y: 55.3, color: "#bbbbbb" },
+      "Kolkata":          { x: 76.1, y: 42.4, color: "#bbbbbb" },
 
-      // Red — East / Southeast Asia / Oceania
-      "Beijing":          { x: 72.0, y: 24.0, color: "#ff5555" },
-      "Seoul":            { x: 77.5, y: 23.0, color: "#ff5555" },
-      "Tokyo":            { x: 81.5, y: 28.0, color: "#ff5555" },
-      "Shanghai":         { x: 74.0, y: 33.0, color: "#ff5555" },
-      "Taipei":           { x: 78.5, y: 38.0, color: "#ff5555" },
-      "Osaka":            { x: 82.5, y: 34.0, color: "#ff5555" },
-      "Hong Kong":        { x: 74.0, y: 44.0, color: "#ff5555" },
-      "Bangkok":          { x: 70.5, y: 51.0, color: "#ff5555" },
-      "Ho Chi Minh City": { x: 75.5, y: 54.0, color: "#ff5555" },
-      "Manila":           { x: 80.5, y: 51.0, color: "#ff5555" },
-      "Jakarta":          { x: 73.5, y: 61.0, color: "#ff5555" },
-      "Sydney":           { x: 83.5, y: 68.0, color: "#ff5555" },
+      "Beijing":          { x: 80.3, y: 31.5, color: "#ff5555" },
+      "Seoul":            { x: 86.3, y: 30.7, color: "#ff5555" },
+      "Tokyo":            { x: 90.9, y: 34.5, color: "#ff5555" },
+      "Shanghai":         { x: 80.9, y: 38.4, color: "#ff5555" },
+      "Taipei":           { x: 87.0, y: 45.4, color: "#ff5555" },
+      "Osaka":            { x: 92.2, y: 42.4, color: "#ff5555" },
+      "Hong Kong":        { x: 81.0, y: 46.6, color: "#ff5555" },
+      "Bangkok":          { x: 77.6, y: 50.4, color: "#ff5555" },
+      "Ho Chi Minh City": { x: 81.6, y: 57.6, color: "#ff5555" },
+      "Manila":           { x: 88.6, y: 57.3, color: "#ff5555" },
+      "Jakarta":          { x: 77.2, y: 64.1, color: "#ff5555" },
+      "Sydney":           { x: 92.4, y: 76.9, color: "#ff5555" },
     };
 
-    // ── Connections drawn on the board ───────────────────────────────────────
-    // Trans-Pacific routes are NOT drawn (they'd cross the map) but ARE in the
-    // adjacency graph: SF-Tokyo, SF-Manila, LA-Sydney
     const DRAWN_CONNECTIONS = [
-      // North America
       ["San Francisco","Chicago"], ["San Francisco","Los Angeles"],
       ["Chicago","Atlanta"], ["Chicago","Montreal"], ["Chicago","Mexico City"], ["Chicago","Los Angeles"],
       ["Atlanta","Miami"], ["Atlanta","Washington"],
       ["Montreal","Washington"], ["Montreal","New York"],
       ["Washington","New York"], ["Washington","Miami"],
       ["New York","London"], ["New York","Madrid"],
-      // Europe
       ["London","Essen"], ["London","Madrid"], ["London","Paris"],
       ["Madrid","Paris"], ["Madrid","Algiers"], ["Madrid","Sao Paulo"],
       ["Paris","Essen"], ["Paris","Milan"], ["Paris","Algiers"],
       ["Essen","Milan"], ["Essen","St. Petersburg"],
       ["Milan","Istanbul"],
       ["St. Petersburg","Istanbul"], ["St. Petersburg","Moscow"],
-      // South America
       ["Los Angeles","Mexico City"],
       ["Mexico City","Miami"], ["Mexico City","Bogota"], ["Mexico City","Lima"],
       ["Miami","Bogota"],
@@ -294,11 +330,9 @@
       ["Lima","Santiago"],
       ["Buenos Aires","Sao Paulo"],
       ["Sao Paulo","Lagos"],
-      // Africa
       ["Lagos","Kinshasa"], ["Lagos","Khartoum"],
       ["Kinshasa","Khartoum"], ["Kinshasa","Johannesburg"],
       ["Khartoum","Johannesburg"], ["Khartoum","Cairo"],
-      // Middle East
       ["Algiers","Cairo"], ["Algiers","Istanbul"],
       ["Cairo","Istanbul"], ["Cairo","Baghdad"], ["Cairo","Riyadh"],
       ["Istanbul","Baghdad"], ["Istanbul","Moscow"],
@@ -311,7 +345,6 @@
       ["Mumbai","Chennai"],
       ["Chennai","Kolkata"], ["Chennai","Bangkok"], ["Chennai","Jakarta"],
       ["Kolkata","Bangkok"], ["Kolkata","Hong Kong"],
-      // East Asia
       ["Beijing","Seoul"], ["Beijing","Shanghai"],
       ["Seoul","Shanghai"], ["Seoul","Tokyo"],
       ["Tokyo","Shanghai"], ["Tokyo","Osaka"],
@@ -320,8 +353,7 @@
       ["Hong Kong","Bangkok"], ["Hong Kong","Ho Chi Minh City"], ["Hong Kong","Manila"],
       ["Bangkok","Ho Chi Minh City"], ["Bangkok","Jakarta"],
       ["Ho Chi Minh City","Jakarta"], ["Ho Chi Minh City","Manila"],
-      ["Manila","Sydney"],
-      ["Jakarta","Sydney"],
+      ["Manila","Sydney"], ["Jakarta","Sydney"],
     ];
 
     const TRANSPACIFIC = [
@@ -330,7 +362,7 @@
       ["Los Angeles","Sydney"],
     ];
 
-    // ── Build adjacency ──────────────────────────────────────────────────────
+    // ── Adjacency ────────────────────────────────────────────────────────────
     const adjacency = {};
     Object.keys(CITIES).forEach(c => { adjacency[c] = new Set(); });
     [...DRAWN_CONNECTIONS, ...TRANSPACIFIC].forEach(([a, b]) => {
@@ -340,10 +372,17 @@
 
     // ── State ────────────────────────────────────────────────────────────────
     let currentCity = "Atlanta";
+    let calibrating = false;
+    let dragState = null; // { name, nodeEl }
 
-    // ── Render SVG connections ───────────────────────────────────────────────
-    const svg = document.getElementById('svg-overlay');
+    // ── DOM refs ─────────────────────────────────────────────────────────────
+    const svg         = document.getElementById('svg-overlay');
+    const citiesLayer = document.getElementById('cities-layer');
+    const token       = document.getElementById('token');
+    const container   = document.getElementById('board-container');
+    const coordsEl    = document.getElementById('coords-display');
 
+    // ── SVG connections ──────────────────────────────────────────────────────
     function renderConnections() {
       svg.innerHTML = '';
       DRAWN_CONNECTIONS.forEach(([a, b]) => {
@@ -361,15 +400,14 @@
     function highlightConnections() {
       svg.querySelectorAll('line').forEach(line => {
         const { a, b } = line.dataset;
-        const active = (a === currentCity && adjacency[currentCity].has(b))
-                    || (b === currentCity && adjacency[currentCity].has(a));
-        line.setAttribute('class', active ? 'conn-active' : 'conn-normal');
+        const active = adjacency[currentCity].has(a) && a !== currentCity
+                    || adjacency[currentCity].has(b) && b !== currentCity;
+        const isCurrentEdge = (a === currentCity || b === currentCity);
+        line.setAttribute('class', isCurrentEdge && !calibrating ? 'conn-active' : 'conn-normal');
       });
     }
 
-    // ── Render city nodes ────────────────────────────────────────────────────
-    const citiesLayer = document.getElementById('cities-layer');
-
+    // ── City nodes ───────────────────────────────────────────────────────────
     function renderCities() {
       citiesLayer.innerHTML = '';
       Object.entries(CITIES).forEach(([name, data]) => {
@@ -389,7 +427,14 @@
 
         node.appendChild(dot);
         node.appendChild(label);
-        node.addEventListener('click', () => onCityClick(name));
+
+        node.addEventListener('mousedown', e => {
+          if (calibrating) { startDrag(e, name, node); }
+        });
+        node.addEventListener('click', e => {
+          if (!calibrating) onCityClick(name);
+        });
+
         citiesLayer.appendChild(node);
       });
     }
@@ -398,23 +443,21 @@
       document.querySelectorAll('.city-node').forEach(node => {
         const name = node.dataset.city;
         node.classList.remove('current', 'valid-move', 'invalid');
-        if (name === currentCity) {
-          node.classList.add('current');
-        } else if (adjacency[currentCity].has(name)) {
-          node.classList.add('valid-move');
-        } else {
-          node.classList.add('invalid');
+        if (!calibrating) {
+          if (name === currentCity)               node.classList.add('current');
+          else if (adjacency[currentCity].has(name)) node.classList.add('valid-move');
+          else                                    node.classList.add('invalid');
         }
       });
     }
 
     // ── Token ────────────────────────────────────────────────────────────────
-    const token = document.getElementById('token');
-
-    function placeToken() {
+    function placeToken(animate = true) {
+      if (!animate) token.style.transition = 'none';
       const city = CITIES[currentCity];
       token.style.left = city.x + '%';
       token.style.top  = city.y + '%';
+      if (!animate) requestAnimationFrame(() => { token.style.transition = ''; });
     }
 
     // ── Info panel ───────────────────────────────────────────────────────────
@@ -428,14 +471,14 @@
     let toastTimer = null;
     const toastEl = document.getElementById('toast');
 
-    function showToast(msg) {
+    function showToast(msg, green = false) {
       toastEl.textContent = msg;
-      toastEl.classList.add('show');
+      toastEl.className = 'show' + (green ? ' green' : '');
       clearTimeout(toastTimer);
-      toastTimer = setTimeout(() => toastEl.classList.remove('show'), 1500);
+      toastTimer = setTimeout(() => { toastEl.className = ''; }, 2000);
     }
 
-    // ── Click handler ────────────────────────────────────────────────────────
+    // ── Game click ───────────────────────────────────────────────────────────
     function onCityClick(name) {
       if (name === currentCity) return;
       if (!adjacency[currentCity].has(name)) {
@@ -449,10 +492,67 @@
       updateInfoPanel();
     }
 
+    // ── Calibration ──────────────────────────────────────────────────────────
+    function toggleCalibration() {
+      calibrating = !calibrating;
+      document.body.classList.toggle('calibrating', calibrating);
+      const btn = document.getElementById('cal-btn');
+      btn.textContent = calibrating ? 'Exit Calibrate' : 'Calibrate';
+      btn.classList.toggle('active', calibrating);
+      document.getElementById('export-btn').style.display = calibrating ? 'inline-block' : 'none';
+      document.getElementById('cal-info').style.display  = calibrating ? 'inline' : 'none';
+      coordsEl.style.display = calibrating ? 'block' : 'none';
+      token.style.display = calibrating ? 'none' : 'block';
+      updateCityStates();
+      highlightConnections();
+    }
+
+    // Mouse move: show coords in calibration mode
+    container.addEventListener('mousemove', e => {
+      if (!calibrating) return;
+      const rect = container.getBoundingClientRect();
+      const x = ((e.clientX - rect.left) / rect.width  * 100).toFixed(2);
+      const y = ((e.clientY - rect.top)  / rect.height * 100).toFixed(2);
+      coordsEl.textContent = `x: ${x}%  y: ${y}%`;
+
+      if (dragState) {
+        const node = dragState.node;
+        CITIES[dragState.name].x = parseFloat(x);
+        CITIES[dragState.name].y = parseFloat(y);
+        node.style.left = x + '%';
+        node.style.top  = y + '%';
+        renderConnections(); // redraw lines live
+      }
+    });
+
+    function startDrag(e, name, node) {
+      e.preventDefault();
+      dragState = { name, node };
+      node.classList.add('dragging');
+    }
+
+    document.addEventListener('mouseup', () => {
+      if (dragState) {
+        dragState.node.classList.remove('dragging');
+        dragState = null;
+      }
+    });
+
+    // Export city coordinates as JSON snippet
+    function exportCoords() {
+      const lines = Object.entries(CITIES).map(([name, d]) =>
+        `  "${name}": { x: ${d.x.toFixed(1)}, y: ${d.y.toFixed(1)}, color: "${d.color}" },`
+      );
+      const output = 'const CITIES = {\n' + lines.join('\n') + '\n};';
+      navigator.clipboard.writeText(output).then(() => {
+        showToast('Coordinates copied to clipboard!', true);
+      });
+    }
+
     // ── Init ─────────────────────────────────────────────────────────────────
     renderConnections();
     renderCities();
-    placeToken();
+    placeToken(false);
     updateCityStates();
     highlightConnections();
     updateInfoPanel();
