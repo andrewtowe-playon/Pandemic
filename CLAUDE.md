@@ -30,6 +30,8 @@ This section is shared context for **every teammate's Claude**. Follow it so fiv
 - **Game logic must match `Rules.md`.** When a rule is ambiguous, follow `Rules.md` and flag
   it for Andrew — do not invent a rule.
 - Keep changes small and commit often on your own branch.
+- **Run `npm test` before every commit.** It is a dependency-free regression net
+  (see "Testing" below). If it fails, you broke something shared — fix it before pushing.
 
 ### The one architectural rule — one-way data flow
 
@@ -82,6 +84,23 @@ npx serve .          # or any static server; then open http://localhost:3000
 City coordinates in `state.js` are **manually calibrated to `Board.webp`** — do not replace
 them with un-calibrated values. `setup.html` writes player/role/difficulty choices to
 `localStorage` (`pandemicSettings`); `game.js` `boot()` reads them to start a game.
+
+### Testing — regression net (run before committing)
+
+```
+npm test          # or: node test/run.js
+```
+
+Dependency-free Node harness (`test/`) that loads the real modules with a DOM shim:
+- **`engine.test.js`** — scenario assertions for mechanics (setup, legal/illegal actions,
+  a full ACTIONS→DRAW→INFECT→next cycle, loss path).
+- **`autoplay.js`** — a bot plays full games checking invariants every turn: cube
+  conservation (supply+board=24 per color), never >3 cubes/city, outbreaks ∈ [0,8],
+  infection deck always totals 48, and every game terminates. Deep autoplay auto-enables
+  once `cards.js` deck-dealing is implemented.
+
+Exits non-zero on failure. If you add a mechanic, add an assertion. This is how we keep five
+people committing in parallel without silent regressions.
 
 ### Recent structural decisions (so you're not surprised)
 
