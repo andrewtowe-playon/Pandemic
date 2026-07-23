@@ -12,6 +12,22 @@ goes in [`tasks/`](tasks/) as one card per file. State is the directory
 **unassigned** and routed later — see [`tasks/README.md`](tasks/README.md) for the format
 and assignment flow. Board at a glance: `ls tasks/open tasks/working tasks/done`.
 
+## Outstanding Work — snapshot (2026-07-23, vs `origin/main` `bcb39bb`)
+
+The rules **engine is complete** — every mechanic in the build-priority list below
+(MVP → stretch, all 7 roles, all 5 events) is implemented and tested in `rules.js` /
+`cards.js`. What's left is **UI plumbing** in the view/controls files:
+
+| Status | Item | File / Owner | Notes |
+|---|---|---|---|
+| ⬜ Open | Pawns not drawn on the board | `render.js` / Abigail | `renderPawns()` is still a stub — the only `TODO(` left in `js/`. Locations are tracked; you just can't see pawns on the map. MVP-visible gap. |
+| ⬜ Open | 7-card hand limit not enforced in UI | `controls.js` / Mike | `Controls.promptDiscard` doesn't exist, so `game.js` falls through when a hand exceeds 7. The engine logs a warning; the UI must force the discard. |
+| ⬜ Open | Event cards unplayable | `controls.js` / Mike | All 5 events work in `rules.js` (`playEvent`) but no button calls them. |
+| ⬜ Open | Role-action buttons missing | `controls.js` / Mike | Ops Expert move, Dispatcher move-to-pawn, and Contingency Planner retrieve exist in `rules.js` but aren't wired to the action bar. |
+
+File these as `tasks/open` cards (routed by the ownership map) so they're tracked — this
+table is the summary; the cards are the work units. Keep it updated as items close.
+
 ## The one architectural rule
 
 **One-way data flow:**
@@ -87,6 +103,10 @@ Game.newGame({ numPlayers: 2, difficulty: 'introductory',
 
 ## Known gaps to close
 
-- **`Board.webp` is not in the repo** — the board shows a gradient fallback until someone
-  adds/commits the image. City dots/positions work regardless.
+- ~~**`Board.webp` is not in the repo** — the board shows a gradient fallback until someone
+  adds/commits the image. City dots/positions work regardless.~~
+  **✅ RESOLVED (2026-07-23)** — `Board.webp` is committed (later upgraded to a sharper
+  image); calibrated coordinates in `state.js` are tuned to it.
 - All `TODO(owner)` markers in the JS files are the actual work items.
+  **Update (2026-07-23):** only one remains — `renderPawns()` in `render.js`. See the
+  "Outstanding Work" snapshot near the top for the full current list.
