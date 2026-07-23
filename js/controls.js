@@ -451,6 +451,108 @@ const Controls = {
       ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[ch]));
   },
 
+  /** Turn-end summary popup: show drawn player cards + infection cards,
+   *  then call onContinue() when the player dismisses it. */
+  showTurnSummary(playerCards, drewEpidemic, infectionCards, onContinue) {
+    const modal = document.getElementById('modal');
+    const box   = document.getElementById('modal-box');
+    if (!modal || !box) { onContinue(); return; }
+
+    box.innerHTML = '';
+
+    const title = document.createElement('h2');
+    title.textContent = 'End of Turn';
+    title.style.cssText = 'letter-spacing:3px;color:#6af;margin-bottom:14px;';
+    box.appendChild(title);
+
+    // ── Player cards drawn ───────────────────────────────────────────────
+    const pcHead = document.createElement('div');
+    pcHead.style.cssText = 'font-size:0.78rem;color:#aab;margin-bottom:5px;text-align:left;';
+    pcHead.textContent = 'Player cards drawn:';
+    box.appendChild(pcHead);
+
+    const pcList = document.createElement('div');
+    pcList.style.cssText = 'display:flex;flex-wrap:wrap;gap:4px;margin-bottom:12px;justify-content:flex-start;';
+
+    if (drewEpidemic) {
+      const chip = document.createElement('span');
+      chip.style.cssText =
+        'padding:3px 8px;border-radius:4px;font-size:0.75rem;' +
+        'background:#f80;color:#000;font-weight:bold;';
+      chip.textContent = '⚡ EPIDEMIC';
+      pcList.appendChild(chip);
+    }
+
+    playerCards.forEach(card => {
+      const chip = document.createElement('span');
+      chip.style.cssText =
+        'padding:3px 8px;border-radius:4px;font-size:0.75rem;border:1px solid rgba(255,255,255,0.2);';
+      if (card.type === 'city') {
+        chip.style.background = COLOR_HEX[card.color];
+        chip.style.color = '#000';
+        chip.textContent = card.city;
+      } else if (card.type === 'event') {
+        chip.style.background = '#2a2050';
+        chip.style.color = '#e8d9ff';
+        chip.textContent = `★ ${card.name}`;
+      } else {
+        chip.style.background = '#555';
+        chip.style.color = '#fa0';
+        chip.textContent = card.type;
+      }
+      pcList.appendChild(chip);
+    });
+
+    if (!drewEpidemic && playerCards.length === 0) {
+      const empty = document.createElement('span');
+      empty.style.cssText = 'color:#556;font-size:0.75rem;';
+      empty.textContent = '(none)';
+      pcList.appendChild(empty);
+    }
+    box.appendChild(pcList);
+
+    // ── Infection cards drawn ────────────────────────────────────────────
+    const icHead = document.createElement('div');
+    icHead.style.cssText = 'font-size:0.78rem;color:#aab;margin-bottom:5px;text-align:left;';
+    icHead.textContent = 'Infection cards drawn:';
+    box.appendChild(icHead);
+
+    const icList = document.createElement('div');
+    icList.style.cssText = 'display:flex;flex-wrap:wrap;gap:4px;margin-bottom:16px;justify-content:flex-start;';
+
+    if (infectionCards.length === 0) {
+      const empty = document.createElement('span');
+      empty.style.cssText = 'color:#556;font-size:0.75rem;';
+      empty.textContent = '(skipped — One Quiet Night)';
+      icList.appendChild(empty);
+    } else {
+      infectionCards.forEach(card => {
+        const chip = document.createElement('span');
+        chip.style.cssText =
+          'padding:3px 8px;border-radius:4px;font-size:0.75rem;border:1px solid rgba(255,255,255,0.2);';
+        chip.style.background = COLOR_HEX[card.color];
+        chip.style.color = '#000';
+        chip.textContent = card.city;
+        icList.appendChild(chip);
+      });
+    }
+    box.appendChild(icList);
+
+    // ── Continue button ──────────────────────────────────────────────────
+    const btn = document.createElement('button');
+    btn.textContent = 'Continue ▶';
+    btn.style.cssText =
+      'padding:8px 22px;font-size:0.9rem;cursor:pointer;background:#2a56b0;' +
+      'color:#fff;border:1px solid #6af;border-radius:5px;';
+    btn.addEventListener('click', () => {
+      modal.classList.remove('show');
+      onContinue();
+    });
+    box.appendChild(btn);
+
+    modal.classList.add('show');
+  },
+
   /** Win/lose modal. Call when GameState.phase becomes WON or LOST. */
   showEndGame() {
     const modal = document.getElementById('modal');

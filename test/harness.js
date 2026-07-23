@@ -83,6 +83,11 @@ function loadGame(opts) {
   // the tests skip because it reads localStorage / redirects to setup.html).
   if (sandbox.Render && sandbox.Render.init) sandbox.Render.init();
   if (sandbox.Controls && sandbox.Controls.init) sandbox.Controls.init();
+  // Stub UI-only calls that require a real browser to resolve (e.g. modal
+  // button clicks). Tests verify game logic, not modal rendering.
+  if (sandbox.Controls) {
+    sandbox.Controls.showTurnSummary = function(_pc, _ep, _ic, onContinue) { onContinue(); };
+  }
   return sandbox;
 }
 

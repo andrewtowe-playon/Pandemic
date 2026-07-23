@@ -122,7 +122,12 @@ const Game = {
     if (GameState.phase !== PHASE.ACTIONS) return;
 
     GameState.phase = PHASE.DRAW;
-    const result = Rules.drawPlayerCards(getCurrentPlayer());
+
+    // Snapshot hand before draw so we can compute what was added.
+    const player = getCurrentPlayer();
+    const handBefore = new Set(player.hand);
+
+    const result = Rules.drawPlayerCards(player);
     this._updateStatusBar();
 
     if (result.lost || GameState.phase === PHASE.LOST) {
@@ -131,10 +136,13 @@ const Game = {
       return;
     }
 
+    // Track drawn player cards: new hand entries + epidemic flag.
+    this._turnDrawnCards = player.hand.filter(c => !handBefore.has(c));
+    this._turnDrewEpidemic = result.drewEpidemic;
+
     // Hand-limit (7): if over, the player must discard before infecting.
     // Discard UI is Mike's (Controls). If present, hand off and stop here —
     // Controls calls Game.runInfectPhase() once the hand is legal.
-    const player = getCurrentPlayer();
     if (Cards.isOverHandLimit(player)) {
       logEvent(`${player.name} is over the 7-card hand limit — discard to continue.`);
       Render.render();
@@ -145,10 +153,15 @@ const Game = {
     this.runInfectPhase();
   },
 
-  /** Infect cities (Phase 3), then hand off to the next player. */
+  /** Infect cities (Phase 3), then show the turn summary before advancing. */
   runInfectPhase() {
     GameState.phase = PHASE.INFECT;
+
+    // Snapshot infection discard before infecting to find newly flipped cards.
+    const infDiscardBefore = GameState.infectionDiscard.length;
     Rules.runInfectPhase();
+    const drawnInfection = GameState.infectionDiscard.slice(infDiscardBefore);
+
     this._updateStatusBar();
 
     if (GameState.phase === PHASE.LOST) {
@@ -156,7 +169,20 @@ const Game = {
       Controls.showEndGame();
       return;
     }
-    this.nextTurn();
+
+    Render.render();
+
+    // Show turn summary popup; nextTurn() is called when player dismisses it.
+    if (Controls.showTurnSummary) {
+      Controls.showTurnSummary(
+        this._turnDrawnCards || [],
+        this._turnDrewEpidemic || false,
+        drawnInfection,
+        () => this.nextTurn()
+      );
+    } else {
+      this.nextTurn();
+    }
   },
 
   /** Advance to the next player and reset to the actions phase. */
