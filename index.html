@@ -145,7 +145,18 @@
     }
     #action-buttons button.active .pill-icon { color: #cfe6ff; }
     /* The contextual sub-choice row spans the full grid width. */
-    #action-buttons #action-choice { grid-column: 1 / -1; }
+    /* Contextual sub-choice picker (Treat color, Cure, Share, Forecast order, …).
+       Spans the grid; its buttons are compact chips (NOT the fixed-size pills),
+       laid out with wrapping + spacing. */
+    #action-buttons #action-choice {
+      grid-column: 1 / -1;
+      display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
+      padding: 4px 0;
+    }
+    #action-buttons #action-choice button {
+      width: auto; height: auto; flex: none; flex-direction: row;
+      padding: 5px 10px; font-size: 0.72rem; border-radius: 5px;
+    }
     #turn-buttons { margin: 10px 0; }
     #turn-buttons button {
       width: 100%; padding: 10px; font-size: 0.9rem; font-weight: bold; cursor: pointer;

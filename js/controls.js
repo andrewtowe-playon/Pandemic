@@ -386,7 +386,7 @@ const Controls = {
     cancel.title = 'Cancel';
     cancel.addEventListener('click', () => this._clearChoice());
     el.appendChild(cancel);
-    el.style.display = 'block';
+    el.style.display = 'flex'; // matches the #action-choice flex/gap CSS (block kills the gap)
   },
 
   _clearChoice() {
