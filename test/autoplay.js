@@ -54,7 +54,7 @@ function runAutoplay(games = 25) {
   const check = (label, cond) => results.push({ label, ok: !!cond });
 
   // Is the deck actually dealt? (cards.js buildPlayerDeckWithEpidemics may be WIP.)
-  const probe = loadGame();
+  const probe = loadGame({ seed: 1 });
   probe.Game.newGame({ numPlayers: 4, difficulty: 'standard', roles: ['Medic', 'Scientist', 'Researcher', 'Dispatcher'], names: ['A', 'B', 'C', 'D'] });
   const dealt = probe.GameState.playerDeck.length > 0;
 
@@ -71,7 +71,7 @@ function runAutoplay(games = 25) {
   // Full fuzz: play many games to completion.
   let allTerminated = true, noCrash = true, allInvariantsHeld = true, firstViolation = null;
   for (let n = 0; n < games; n++) {
-    const g = loadGame();
+    const g = loadGame({ seed: 1000 + n });   // varied but reproducible per game
     const roles = ['Medic', 'Scientist', 'Researcher', 'Dispatcher'];
     try {
       g.Game.newGame({ numPlayers: 4, difficulty: 'standard', roles, names: ['A', 'B', 'C', 'D'] });

@@ -13,6 +13,20 @@ const path = require('path');
 const JS_DIR = path.join(__dirname, '..', 'js');
 const LOAD_ORDER = ['state', 'cards', 'rules', 'render', 'controls', 'game'];
 
+const DEFAULT_SEED = 0x9e3779b9; // fixed seed → deterministic scenario tests
+
+/* Small deterministic PRNG (mulberry32) so games are reproducible: a CI
+ * failure reproduces locally, and autoplay explores fixed-but-varied games. */
+function mulberry32(seed) {
+  let a = seed >>> 0;
+  return function () {
+    a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
 /* Minimal DOM element — every method is a harmless no-op so the real
  * render.js / controls.js run without throwing on valid state. */
 function makeEl() {
@@ -31,12 +45,19 @@ function makeEl() {
   return el;
 }
 
-/** Load a fresh game context. Returns the sandbox (globals live on it). */
-function loadGame() {
+/** Load a fresh game context. Returns the sandbox (globals live on it).
+ *  @param {object} [opts]
+ *  @param {number} [opts.seed] RNG seed — same seed gives an identical game.
+ *         Defaults to a fixed value so scenario tests are deterministic;
+ *         autoplay passes a per-game seed for varied-but-reproducible games. */
+function loadGame(opts) {
+  opts = opts || {};
+  const seed = opts.seed == null ? DEFAULT_SEED : opts.seed;
   const sandbox = {};
   sandbox.window = sandbox;                 // `window.X = X` → global property X
   sandbox.console = console;
-  sandbox.Math = Math;
+  // Math clone with a seeded random(); Math.floor/imul/etc. inherited.
+  sandbox.Math = Object.assign(Object.create(Math), { random: mulberry32(seed) });
   sandbox.Date = Date;
   sandbox.setTimeout = () => 0;
   sandbox.clearTimeout = () => {};
