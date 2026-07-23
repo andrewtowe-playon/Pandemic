@@ -39,6 +39,9 @@ function makeEl() {
     addEventListener() {}, removeEventListener() {}, remove() {},
     querySelector() { return null; }, querySelectorAll() { return []; },
     focus() {},
+    // Minimal parent so code like `el.parentNode.appendChild(...)` works.
+    parentNode: { appendChild(c) { return c; }, removeChild(c) { return c; }, insertBefore(c) { return c; } },
+    insertBefore(c) { return c; }, removeChild(c) { return c; },
   };
   Object.defineProperty(el, 'innerHTML', { get() { return ''; }, set() { el.children = []; } });
   Object.defineProperty(el, 'textContent', { get() { return el._text; }, set(v) { el._text = v; } });
