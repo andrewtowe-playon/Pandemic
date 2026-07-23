@@ -62,9 +62,15 @@ Everything is attached to `window`, so plain `<script>` files see each other wit
 
 ## Running it
 
-Open `index.html` in a browser. (If `fetch`/module issues appear, serve the folder:
-`python -m http.server` then visit `http://localhost:8000`.) For quick testing before the
-setup screen exists, call from the console:
+Serve the folder with a static server, then open the printed URL. **Python is not installed
+on these machines** — use Node:
+
+```
+npx serve .          # then open the URL it prints (e.g. http://localhost:3000)
+```
+
+The entry point is `setup.html` (choose players/roles/difficulty); it saves to `localStorage`
+and hands off to `index.html`. For quick testing you can also call from the browser console:
 
 ```js
 Game.newGame({ numPlayers: 2, difficulty: 'introductory',
