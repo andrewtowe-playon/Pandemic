@@ -79,6 +79,22 @@
     .city-node.valid-move .dot { border-color: #fff; }
     .city-node.valid-move:hover .dot { transform: scale(1.5); box-shadow: 0 0 14px #fff; }
 
+    /* Flight targets: pulsing glow so they stand out from plain drive targets */
+    .city-node.flight-target { cursor: pointer; }
+    .city-node.flight-target .dot {
+      border-color: #fff;
+      animation: flight-pulse 0.75s ease-in-out infinite alternate;
+    }
+    .city-node.flight-target:hover .dot {
+      transform: scale(1.6);
+      box-shadow: 0 0 18px #fff, 0 0 8px gold;
+      animation: none;
+    }
+    @keyframes flight-pulse {
+      from { box-shadow: 0 0 4px rgba(255,255,255,0.4); transform: scale(1); }
+      to   { box-shadow: 0 0 14px #fff, 0 0 6px gold; transform: scale(1.3); }
+    }
+
     /* disease cubes clustered above the dot */
     .cube-holder {
       position: absolute; left: 50%; bottom: calc(100% + 2px);

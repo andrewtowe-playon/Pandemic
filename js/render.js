@@ -158,12 +158,17 @@ const Render = {
       }
     }
 
+    const isFlight = ['directFlight', 'charterFlight', 'shuttleFlight'].includes(action);
+
     // Apply classes to city nodes.
     this.citiesLayer.querySelectorAll('.city-node').forEach(node => {
       const name = node.dataset.city;
-      node.classList.remove('current', 'valid-move');
-      if (name === from)              node.classList.add('current');
-      else if (validTargets.has(name)) node.classList.add('valid-move');
+      node.classList.remove('current', 'valid-move', 'flight-target');
+      if (name === from) {
+        node.classList.add('current');
+      } else if (validTargets.has(name)) {
+        node.classList.add(isFlight ? 'flight-target' : 'valid-move');
+      }
     });
 
     // Highlight connection lines that touch the current city (drive only).
