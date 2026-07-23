@@ -212,6 +212,10 @@ const Controls = {
     this._clearChoice();
     Render.render();
     if (window.Game && Game.checkActionsExhausted) Game.checkActionsExhausted();
+    // A Share Knowledge can push the RECEIVER over the 7-card limit mid-turn
+    // (Rules.md > Hand Limit). Prompt them to discard immediately.
+    const over = GameState.players.find(p => Cards.isOverHandLimit(p));
+    if (over) this.promptDiscard(over);
   },
 
   /** Show an inline picker below the action buttons (color choices, etc.). */
@@ -403,6 +407,101 @@ const Controls = {
   _escape(s) {
     return String(s).replace(/[&<>]/g, ch =>
       ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[ch]));
+  },
+
+  /* ======================================================================
+   * MODAL PICKER  (reuses #modal / #modal-box, same overlay as showEndGame;
+   * they never overlap in time). A scrollable list of options; each option is
+   * { label, sublabel?, onClick }. cancelable defaults to true.
+   * ==================================================================== */
+  _modalList(title, subtitle, options, opts) {
+    opts = opts || {};
+    const modal = document.getElementById('modal');
+    const box = document.getElementById('modal-box');
+    if (!modal || !box) return;
+    box.innerHTML = '';
+
+    const h = document.createElement('h1');
+    h.textContent = title;
+    h.style.cssText = 'letter-spacing:3px;margin-bottom:6px;color:#cce;font-size:1.2rem;';
+    box.appendChild(h);
+
+    if (subtitle) {
+      const s = document.createElement('p');
+      s.style.cssText = 'color:#889;font-size:0.8rem;margin-bottom:14px;';
+      s.textContent = subtitle;
+      box.appendChild(s);
+    }
+
+    const list = document.createElement('div');
+    list.style.cssText =
+      'display:flex;flex-direction:column;gap:6px;max-height:50vh;overflow-y:auto;width:100%;';
+    options.forEach(o => {
+      const b = document.createElement('button');
+      b.style.cssText = 'padding:8px 12px;font-size:0.85rem;cursor:pointer;background:#22345c;' +
+        'color:#dfe;border:1px solid #46c;border-radius:5px;text-align:left;';
+      b.textContent = o.label;
+      if (o.sublabel) {
+        const sm = document.createElement('span');
+        sm.style.cssText = 'color:#89a;font-size:0.72rem;margin-left:6px;';
+        sm.textContent = o.sublabel;
+        b.appendChild(sm);
+      }
+      b.addEventListener('click', () => o.onClick());
+      list.appendChild(b);
+    });
+    box.appendChild(list);
+
+    if (opts.cancelable !== false) {
+      const cancel = document.createElement('button');
+      cancel.textContent = opts.cancelLabel || 'Cancel';
+      cancel.style.cssText = 'margin-top:14px;padding:6px 18px;font-size:0.82rem;cursor:pointer;' +
+        'background:#333;color:#ccc;border:1px solid #555;border-radius:5px;';
+      cancel.addEventListener('click', () => opts.onCancel ? opts.onCancel() : this._closeModal());
+      box.appendChild(cancel);
+    }
+
+    modal.classList.add('show');
+  },
+
+  _closeModal() {
+    const modal = document.getElementById('modal');
+    if (modal) modal.classList.remove('show');
+  },
+
+  /* ======================================================================
+   * HAND-LIMIT DISCARD  (Rules.md > Hand Limit)
+   * Game.endActionsPhase() hands off here (and PAUSES the turn) when a player
+   * is over 7 cards after drawing. We discard down to <=7, then resume the
+   * infect phase via Game.runInfectPhase(). Re-prompts itself until legal.
+   * ==================================================================== */
+  promptDiscard(player) {
+    if (player.hand.length <= HAND_LIMIT) {   // legal now
+      this._closeModal();
+      // Only resume the turn if we paused it at the draw -> infect boundary.
+      // A Share Knowledge overflow happens mid-actions; there we just redraw.
+      if (GameState.phase === PHASE.DRAW && window.Game && Game.runInfectPhase) Game.runInfectPhase();
+      else Render.render();
+      return;
+    }
+    const over = player.hand.length - HAND_LIMIT;
+    const options = player.hand.map(card => ({
+      label: card.type === 'city' ? card.city
+           : card.type === 'event' ? `★ ${card.name}` : card.type,
+      sublabel: card.type === 'city' ? card.color : card.type,
+      onClick: () => {
+        Rules.discardCard(player, card);
+        Render.render();
+        this.promptDiscard(player);   // re-prompt until at/under the limit
+      },
+    }));
+    this._modalList(
+      `${player.name} — discard a card`,
+      `Over the ${HAND_LIMIT}-card hand limit (${player.hand.length}/${HAND_LIMIT}). ` +
+        `Discard ${over} more to continue.`,
+      options,
+      { cancelable: false }
+    );
   },
 
   /** Win/lose modal. Call when GameState.phase becomes WON or LOST. */

@@ -79,6 +79,14 @@ function runAutoplay(games = 25) {
       while (g.GameState.phase !== 'won' && g.GameState.phase !== 'lost' && turns < TURN_CAP) {
         takeActions(g);
         g.Game.endActionsPhase();
+        // A turn pauses in the DRAW phase for a hand-limit discard: the browser
+        // shows Controls.promptDiscard and waits. Headless has no user, so the
+        // bot discards down to the limit and resumes, mirroring that handoff.
+        if (g.GameState.phase === 'draw') {
+          const cur = g.getCurrentPlayer();
+          while (g.Cards.isOverHandLimit(cur)) g.Rules.discardCard(cur, cur.hand[cur.hand.length - 1]);
+          g.Game.runInfectPhase();
+        }
         const v = invariants(g);
         if (v.length) { allInvariantsHeld = false; firstViolation = firstViolation || `game ${n} turn ${turns}: ${v[0]}`; break; }
         turns++;

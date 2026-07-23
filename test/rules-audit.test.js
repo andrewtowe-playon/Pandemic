@@ -163,6 +163,30 @@ function runRulesAuditTests() {
       cp.storedEvent === null && !g.GameState.playerDiscard.includes(oqn));
   }
 
+  // ---- Hand limit: Rules.discardCard moves a card hand -> playerDiscard -----
+  {
+    const g = fresh();
+    const p = g.getCurrentPlayer();
+    const keep = { type: 'city', city: 'Cairo', color: 'black' };
+    const drop = { type: 'city', city: 'Paris', color: 'blue' };
+    p.hand = [keep, drop];
+    const discardBefore = g.GameState.playerDiscard.length;
+
+    const r = g.Rules.discardCard(p, drop);
+    check('discardCard: returns ok', r.ok === true);
+    check('discardCard: card removed from hand', !p.hand.includes(drop) && p.hand.includes(keep));
+    check('discardCard: card pushed to playerDiscard',
+      g.GameState.playerDiscard.length === discardBefore + 1 &&
+      g.GameState.playerDiscard[g.GameState.playerDiscard.length - 1] === drop);
+
+    // A card not in hand is rejected, and nothing is discarded.
+    const stranger = { type: 'city', city: 'Lima', color: 'yellow' };
+    const r2 = g.Rules.discardCard(p, stranger);
+    check('discardCard: rejects card not in hand', r2.ok === false);
+    check('discardCard: no phantom discard on rejection',
+      g.GameState.playerDiscard.length === discardBefore + 1);
+  }
+
   return results;
 }
 

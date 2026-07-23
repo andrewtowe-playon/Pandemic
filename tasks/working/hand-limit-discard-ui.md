@@ -2,7 +2,7 @@
 title: 7-card hand limit is not enforced in the UI (no discard prompt)
 file: js/controls.js
 owner: Mike
-assignee:
+assignee: Tae (covering for Mike)
 priority: P0
 filed_by: Ryan
 filed: 2026-07-23
@@ -27,3 +27,22 @@ Note:   The hook already exists — game.js (endActionsPhase) calls
           2. When legal, call `Game.runInfectPhase()` to resume the turn.
         Also enforce after Share Knowledge pushes the receiver over 7 (rules.js already logs
         a warning there). Discovered in the 2026-07-23 browser playtest.
+
+## Progress (Tae, covering for Mike) — 2026-07-23
+
+Implemented; `npm test` green. Left in `working/` pending a real browser playtest of the
+modal (engine tests cover the state path, not the DOM).
+
+- `Controls.promptDiscard(player)` (controls.js) — modal picker of the player's hand; each
+  click discards one card and re-prompts until `<= 7`. Phase-aware resume: at the draw→infect
+  boundary it calls `Game.runInfectPhase()`; a mid-turn Share overflow just re-renders.
+- `Controls._act()` now detects any player over the limit after an action and prompts them,
+  covering the Share Knowledge case.
+- New engine helper `Rules.discardCard(player, card)` (rules.js — additive; **flag for
+  Andrew**) since only Rules may mutate state; used by the discard UI.
+- Reusable `Controls._modalList()` / `_closeModal()` helpers (reuse the #modal overlay).
+- Tests: `discardCard` regression block in `test/rules-audit.test.js`; taught
+  `test/autoplay.js` to resolve the new draw-phase discard pause (games were otherwise
+  stalling headlessly now that `promptDiscard` exists).
+
+NOT done: browser playtest of the modal; whoever verifies can move this to `done/`.

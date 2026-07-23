@@ -569,6 +569,20 @@ const Rules = {
     apply();
     return { ok: true };
   },
+
+  /* ======================================================================
+   * HAND LIMIT  (Rules.md > Hand Limit) — discard down to 7.
+   * Not an action; no actionsRemaining cost. Used by the discard UI when a
+   * player ends up over the 7-card limit after drawing.
+   * ==================================================================== */
+  discardCard(player, card) {
+    const idx = player.hand.indexOf(card);
+    if (idx === -1) return { ok: false, reason: 'Card not in that player\'s hand' };
+    player.hand.splice(idx, 1);
+    GameState.playerDiscard.push(card);
+    logEvent(`${player.name} discarded ${card.type === 'city' ? card.city : card.name}.`);
+    return { ok: true };
+  },
 };
 
 window.Rules = Rules;
