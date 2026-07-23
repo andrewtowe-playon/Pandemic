@@ -1,0 +1,9 @@
+{
+  "name": "pandemic",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Web-based Pandemic (plain HTML/JS). Tests are dependency-free Node.",
+  "scripts": {
+    "test": "node test/run.js"
+  }
+}

@@ -5,6 +5,14 @@
  *     ACTIONS (4)  ->  DRAW (2 player cards)  ->  INFECT  ->  next player
  * Glue only: setup calls into Cards; turn phases call into Rules; every step
  * ends by calling Render.render(). No rule logic lives here.
+ *
+ * Contracts this relies on (verified against the current modules):
+ *   Cards.buildInfectionDeck()                  -> shuffled [{city,color}]
+ *   Cards.seedInitialInfections()               -> seeds board (3/2/1)   [Tae, WIP]
+ *   Cards.buildPlayerDeckWithEpidemics(n, diff) -> deals hands + deck     [Tae, WIP]
+ *   Rules.drawPlayerCards(player)               -> { ok, drewEpidemic, lost }
+ *   Rules.runInfectPhase()                      -> void (may set PHASE.LOST)
+ *   Rules.checkWin()                            -> sets PHASE.WON
  * ===========================================================================*/
 
 const Game = {
@@ -35,54 +43,124 @@ const Game = {
 
   /**
    * Full setup (Rules.md > Setup). Order matters.
-   *  1. initBoard() (zero cubes, Atlanta station).
+   *  1. Reset per-game state + initBoard() (zero cubes, Atlanta station).
    *  2. Create players (role + pawn), all in Atlanta.
    *  3. infectionDeck = Cards.buildInfectionDeck(); Cards.seedInitialInfections().
-   *  4. base cards = Cards.buildBasePlayerCards();
-   *     Cards.buildPlayerDeckWithEpidemics(numPlayers, difficulty) deals hands +
-   *     builds the epidemic-laden deck.
+   *  4. Cards.buildPlayerDeckWithEpidemics() deals hands + builds the epidemic deck.
    *  5. phase = ACTIONS; actionsRemaining = 4; currentPlayerIndex = 0.
    */
   newGame({ numPlayers, difficulty, roles, names }) {
-    // TODO(Ryan): implement the setup sequence above, then Render.render().
-    GameState.difficulty = difficulty;
+    // 1. Reset per-game state so "New Game" is clean even without a page reload.
+    GameState.difficulty = difficulty || 'standard';
+    GameState.outbreaks = 0;
+    GameState.infectionRateIndex = 0;
+    GameState.oneQuietNight = false;
+    GameState.playerDeck = [];
+    GameState.playerDiscard = [];
+    GameState.infectionDiscard = [];
+    GameState.log = [];
+    GameState.cures = {};
+    GameState.cubesRemaining = {};
+    COLORS.forEach(c => {
+      GameState.cures[c] = CURE.UNCURED;
+      GameState.cubesRemaining[c] = CUBES_PER_COLOR;
+    });
     initBoard();
-    // ...
+
+    // 2. Players — all start in Atlanta.
+    const count = numPlayers || (roles ? roles.length : 2);
+    GameState.players = [];
+    for (let i = 0; i < count; i++) {
+      GameState.players.push({
+        id: i,
+        name: (names && names[i]) || `Player ${i + 1}`,
+        role: (roles && roles[i]) || '',
+        location: 'Atlanta',
+        hand: [],
+      });
+    }
+    GameState.currentPlayerIndex = 0;
+
+    // 3. Infection deck + seed the board (3/2/1 cubes on 9 cities).
+    GameState.infectionDeck = Cards.buildInfectionDeck();
+    Cards.seedInitialInfections();
+
+    // 4. Deal starting hands and build the player deck with epidemics.
+    Cards.buildPlayerDeckWithEpidemics(count, GameState.difficulty);
+
+    // 5. Begin the first turn.
     GameState.phase = PHASE.ACTIONS;
     GameState.actionsRemaining = 4;
-    GameState.currentPlayerIndex = 0;
-    logEvent('New game started.');
+    logEvent(`New game started — ${count} players, ${GameState.difficulty} difficulty.`);
+    logEvent(`${getCurrentPlayer().name}'s turn.`);
+
+    this._updateStatusBar();
     Render.render();
   },
 
-  /** Called by Controls after each action: if 0 actions left, offer to advance. */
+  /** Called by Controls after each action. Enforces end-of-turn / end-of-game. */
   checkActionsExhausted() {
-    if (GameState.phase === PHASE.ACTIONS && GameState.actionsRemaining <= 0) {
-      // TODO(Ryan): auto-advance or enable the "Draw cards" button.
-    }
+    this._updateStatusBar();
+
     if (GameState.phase === PHASE.WON || GameState.phase === PHASE.LOST) {
+      Render.render();
       Controls.showEndGame();
+      return;
+    }
+    // When actions run out, the player advances by pressing "Draw / End Turn"
+    // (wired by Controls). We don't force it, so events can still be played.
+    if (GameState.phase === PHASE.ACTIONS && GameState.actionsRemaining <= 0) {
+      logEvent('No actions left — draw player cards to continue.');
+      Render.render();
     }
   },
 
-  /** Player chooses to end their actions -> run draw phase. */
+  /** Player ends their actions -> draw 2 player cards (Phase 2). */
   endActionsPhase() {
-    // TODO(Ryan): set phase=DRAW; Rules.drawPlayerCards(getCurrentPlayer());
-    // if that caused a loss, Controls.showEndGame() and stop.
-    // Then handle hand-limit discards before infecting.
+    if (GameState.phase !== PHASE.ACTIONS) return;
+
+    GameState.phase = PHASE.DRAW;
+    const result = Rules.drawPlayerCards(getCurrentPlayer());
+    this._updateStatusBar();
+
+    if (result.lost || GameState.phase === PHASE.LOST) {
+      Render.render();
+      Controls.showEndGame();
+      return;
+    }
+
+    // Hand-limit (7): if over, the player must discard before infecting.
+    // Discard UI is Mike's (Controls). If present, hand off and stop here —
+    // Controls calls Game.runInfectPhase() once the hand is legal.
+    const player = getCurrentPlayer();
+    if (Cards.isOverHandLimit(player)) {
+      logEvent(`${player.name} is over the 7-card hand limit — discard to continue.`);
+      Render.render();
+      if (Controls.promptDiscard) { Controls.promptDiscard(player); return; }
+      // Fallback until the discard UI exists: proceed anyway so the loop runs.
+    }
+
     this.runInfectPhase();
   },
 
-  /** Infect, then hand off to the next player. */
+  /** Infect cities (Phase 3), then hand off to the next player. */
   runInfectPhase() {
-    // TODO(Ryan): set phase=INFECT; Rules.runInfectPhase();
-    // if loss -> Controls.showEndGame() and stop.
+    GameState.phase = PHASE.INFECT;
+    Rules.runInfectPhase();
+    this._updateStatusBar();
+
+    if (GameState.phase === PHASE.LOST) {
+      Render.render();
+      Controls.showEndGame();
+      return;
+    }
     this.nextTurn();
   },
 
   /** Advance to the next player and reset to the actions phase. */
   nextTurn() {
     if (GameState.phase === PHASE.WON || GameState.phase === PHASE.LOST) {
+      Render.render();
       Controls.showEndGame();
       return;
     }
@@ -90,7 +168,18 @@ const Game = {
     GameState.actionsRemaining = 4;
     GameState.phase = PHASE.ACTIONS;
     logEvent(`${getCurrentPlayer().name}'s turn.`);
+    this._updateStatusBar();
     Render.render();
+  },
+
+  /** Update the header status bar (orchestrator dashboard; not the board/sidebar). */
+  _updateStatusBar() {
+    const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+    const cur = getCurrentPlayer();
+    set('s-player', cur ? `${cur.name}${cur.role ? ' (' + cur.role + ')' : ''}` : '—');
+    set('s-actions', GameState.phase === PHASE.ACTIONS ? GameState.actionsRemaining : '—');
+    set('s-rate', getInfectionRate());
+    set('s-outbreaks', `${GameState.outbreaks}/${MAX_OUTBREAKS}`);
   },
 };
 

@@ -3,7 +3,8 @@
 ## Project Context — Hackathon
 
 - **Format:** 4-hour hackathon. Goal is a playable web-based Pandemic (plain HTML/JS/CSS,
-  no TypeScript/build step — a single `index.html` grows into the game).
+  no TypeScript/build step). It is also an exercise in **AI-assisted development and team
+  coordination**: all five teammates work with Claude in parallel on the same repo.
 - **Team (5):** Ryan Beal (owner of this working copy), Andrew Towe (set up the repo + first
   commit; the **only** team member who knows the game well — treat him as the rules
   authority), Abigail Andrews, Tae, and Mike Weiss.
@@ -11,6 +12,103 @@
   Pandemic**, so when writing or reviewing code, it must **align with the official rules** —
   see `Rules.md` (the authoritative rules reference; correct where this file and it disagree).
   When a rule is ambiguous, flag it rather than guessing, and prefer Andrew's call.
+
+## How We Build — Architecture & Coordination (READ FIRST)
+
+This section is shared context for **every teammate's Claude**. Follow it so five people
+(and five Claude sessions) can build in parallel without collisions. Detailed process is in
+`DELEGATION.md`; the concrete data contract is in `js/state.js`; the rules are in `Rules.md`.
+
+### If you are Claude working in this repo
+
+- You are **one of five Claude instances** on this repo, one per teammate.
+- **Stay in your owner's file.** Do the `TODO(<owner>)` items in the file assigned to your
+  teammate (see ownership map). Do **not** edit another person's file, and never edit
+  `js/state.js` or `js/rules.js` unless you are Andrew.
+- **Conform to the contract** documented at the top of `js/state.js` (the `GameState` shape,
+  card shapes, deck order). Read it before writing code.
+- **Game logic must match `Rules.md`.** When a rule is ambiguous, follow `Rules.md` and flag
+  it for Andrew — do not invent a rule.
+- Keep changes small and commit often on your own branch.
+- **Run `npm test` before every commit.** It is a dependency-free regression net
+  (see "Testing" below). If it fails, you broke something shared — fix it before pushing.
+
+### The one architectural rule — one-way data flow
+
+```
+user input  ->  Rules.* (or setup) mutates GameState  ->  Render.render()
+```
+
+- `GameState` (in `js/state.js`) is the single shared state object. Everyone **reads** it.
+- Only `Rules.*` and setup code **mutate** it. After any change, call `Render.render()`
+  (it redraws everything from state — no manual DOM patching).
+
+### Ownership map — edit only your file
+
+| File | Owner | Responsibility |
+|------|-------|----------------|
+| `js/state.js` | **Andrew** | Shared contract: constants + `GameState` + pure helpers. **Frozen at 0:30** — additive changes only after (no renames/removals). |
+| `js/rules.js` | **Andrew** | Rules engine: actions, draw/epidemic/infect, outbreak chains, eradication, win/lose. |
+| `js/game.js` | **Ryan** | Setup + turn cycle (ACTIONS → DRAW → INFECT → next player). Glue only. |
+| `js/render.js` | **Abigail** | Board rendering: cubes, stations, pawns, markers, highlights. |
+| `js/cards.js` | **Tae** | Both decks: build, shuffle, deal, seed infections, intensify. |
+| `js/controls.js` | **Mike** | Sidebar UI, action buttons, hand, turn buttons, toasts, win/lose modal. |
+
+`index.html` (DOM containers + script order) and `setup.html` are shared — coordinate edits.
+
+### The contract everyone relies on
+
+- **Card shapes / deck order:** documented at the top of `js/state.js` (index 0 = top of
+  deck; `.pop()` = bottom). Do not diverge.
+- **Action functions in `rules.js`** return `{ ok:true }` or `{ ok:false, reason:'...' }`;
+  they validate first, mutate second, and decrement `actionsRemaining` on success.
+- **Global helpers:** `getInfectionRate()`, `getCurrentPlayer()`, `getAdjacent(city)`,
+  `isAdjacent(a,b)`, `getStations()`, `cubesOnBoard(color)`, `initBoard()`, `logEvent(msg)`.
+- Everything is attached to `window`, so plain `<script>` files see each other (no imports).
+
+### Build priority (protect "playable")
+
+1. **MVP loop:** setup → drive + treat + build + draw 2 + infect + win/lose.
+2. Then: other movement actions, share knowledge, discover cure, epidemics + outbreaks.
+3. Stretch (cut first if short): the 7 roles, then the 5 events (Contingency Planner /
+   Dispatcher last).
+
+### Running it (Python is NOT installed on these machines)
+
+Serve the folder with Node, then open the printed URL:
+
+```
+npx serve .          # or any static server; then open http://localhost:3000
+```
+
+City coordinates in `state.js` are **manually calibrated to `Board.webp`** — do not replace
+them with un-calibrated values. `setup.html` writes player/role/difficulty choices to
+`localStorage` (`pandemicSettings`); `game.js` `boot()` reads them to start a game.
+
+### Testing — regression net (run before committing)
+
+```
+npm test          # or: node test/run.js
+```
+
+Dependency-free Node harness (`test/`) that loads the real modules with a DOM shim:
+- **`engine.test.js`** — scenario assertions for mechanics (setup, legal/illegal actions,
+  a full ACTIONS→DRAW→INFECT→next cycle, loss path).
+- **`autoplay.js`** — a bot plays full games checking invariants every turn: cube
+  conservation (supply+board=24 per color), never >3 cubes/city, outbreaks ∈ [0,8],
+  infection deck always totals 48, and every game terminates. Deep autoplay auto-enables
+  once `cards.js` deck-dealing is implemented.
+
+Exits non-zero on failure. If you add a mechanic, add an assertion. This is how we keep five
+people committing in parallel without silent regressions.
+
+### Recent structural decisions (so you're not surprised)
+
+- The original single-file `index.html` visualizer was **refactored into the `js/` module
+  split** above — that is the intended structure now; do not revert to one big file.
+- The team's board image (`Board.webp`), calibrated coordinates, and `setup.html` were
+  merged in and preserved. Their earlier inline player-badge / turn UI now belongs in
+  `render.js` / `controls.js`.
 
 ## Overview
 

@@ -219,7 +219,8 @@ const GameState = {
   phase: PHASE.SETUP,
   difficulty: 'standard',
 
-  // players: [{ id, name, role, location, hand: [card] }]
+  // players: [{ id, name, role, location, hand: [card],
+  //             storedEvent: card|null }]  // storedEvent: Contingency Planner only
   players: [],
   currentPlayerIndex: 0,
   actionsRemaining: 4,
