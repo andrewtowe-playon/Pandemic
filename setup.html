@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pandemic — New Game</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: radial-gradient(ellipse at top, #0b1030 0%, #060614 70%);
+      min-height: 100vh;
+      font-family: 'Segoe UI', Consolas, monospace;
+      color: #cce;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 32px 16px 64px;
+    }
+
+    h1 {
+      font-size: 2.6rem;
+      letter-spacing: 10px;
+      color: #6af;
+      text-shadow: 0 0 22px #4af, 0 0 6px #6cf;
+      margin-bottom: 4px;
+    }
+
+    .tagline {
+      color: #889;
+      font-size: 0.9rem;
+      letter-spacing: 3px;
+      margin-bottom: 28px;
+      text-transform: uppercase;
+    }
+
+    .card {
+      width: 100%;
+      max-width: 780px;
+      background: rgba(10,14,40,0.72);
+      border: 1px solid #223;
+      border-radius: 12px;
+      padding: 22px 26px;
+      margin-bottom: 20px;
+      box-shadow: 0 6px 30px rgba(0,0,0,0.4);
+    }
+
+    .card h2 {
+      font-size: 1.05rem;
+      color: #8cf;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+      border-bottom: 1px solid #1c2440;
+      padding-bottom: 8px;
+    }
+
+    /* ── Intro ─────────────────────────────────────────── */
+    .intro p { line-height: 1.65; font-size: 0.92rem; color: #bcd; margin-bottom: 10px; }
+    .intro .goals { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 6px; }
+    .goal {
+      flex: 1;
+      min-width: 220px;
+      padding: 12px 14px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      line-height: 1.5;
+    }
+    .goal.win  { background: rgba(40,120,60,0.18);  border: 1px solid #2a6; }
+    .goal.lose { background: rgba(150,40,40,0.16);   border: 1px solid #a44; }
+    .goal b { display: block; margin-bottom: 4px; letter-spacing: 1px; }
+    .goal.win b  { color: #7e6; }
+    .goal.lose b { color: #f88; }
+    .goal ul { margin: 4px 0 0 16px; }
+    .goal li { margin-bottom: 2px; }
+
+    /* ── Option button groups ──────────────────────────── */
+    .option-row { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+    .option-row + .option-row { margin-top: 16px; }
+    .option-label { min-width: 120px; color: #99a; font-size: 0.85rem; letter-spacing: 1px; }
+
+    .seg { display: flex; gap: 8px; flex-wrap: wrap; }
+    .seg button {
+      background: rgba(30,40,80,0.5);
+      color: #bcd;
+      border: 1px solid #2a3a66;
+      border-radius: 8px;
+      padding: 10px 16px;
+      font-family: inherit;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all 0.15s;
+      text-align: left;
+    }
+    .seg button small { display: block; color: #778; font-size: 0.72rem; margin-top: 2px; }
+    .seg button:hover { border-color: #4af; color: #dff; }
+    .seg button.active {
+      background: rgba(70,150,255,0.22);
+      border-color: #6af;
+      color: #eff;
+      box-shadow: 0 0 12px rgba(70,150,255,0.35);
+    }
+    .seg button.active small { color: #9bd; }
+
+    /* ── Roles ─────────────────────────────────────────── */
+    .roles-head { display: flex; justify-content: space-between; align-items: center; }
+    .btn-reshuffle {
+      background: rgba(30,40,80,0.5);
+      color: #bcd;
+      border: 1px solid #2a3a66;
+      border-radius: 8px;
+      padding: 7px 14px;
+      font-family: inherit;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .btn-reshuffle:hover { border-color: #4af; color: #dff; }
+
+    .role-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; margin-top: 14px; }
+    .role-card {
+      border-radius: 10px;
+      padding: 14px;
+      background: rgba(20,26,54,0.7);
+      border-left: 5px solid var(--rc, #6af);
+      border-top: 1px solid #223;
+      border-right: 1px solid #223;
+      border-bottom: 1px solid #223;
+    }
+    .role-card .player-name {
+      width: 100%;
+      background: transparent;
+      border: none;
+      border-bottom: 1px dashed #345;
+      color: #dff;
+      font-family: inherit;
+      font-size: 0.9rem;
+      padding: 2px 0 5px;
+      margin-bottom: 8px;
+      outline: none;
+    }
+    .role-card .player-name:focus { border-bottom-color: #6af; }
+    .role-card .role-name { font-size: 1rem; color: var(--rc, #6af); letter-spacing: 1px; margin-bottom: 6px; font-weight: bold; }
+    .role-card .role-ability { font-size: 0.78rem; line-height: 1.5; color: #abc; }
+
+    /* ── Start ─────────────────────────────────────────── */
+    .start-bar { width: 100%; max-width: 780px; display: flex; justify-content: flex-end; }
+    #start-btn {
+      background: linear-gradient(180deg, #2a7 0%, #185 100%);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      padding: 15px 40px;
+      font-family: inherit;
+      font-size: 1.05rem;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      cursor: pointer;
+      box-shadow: 0 0 20px rgba(40,180,120,0.4);
+      transition: transform 0.12s, box-shadow 0.12s;
+    }
+    #start-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 26px rgba(40,180,120,0.6); }
+    #start-btn:active { transform: translateY(0); }
+  </style>
+</head>
+<body>
+
+  <h1>PANDEMIC</h1>
+  <div class="tagline">Cooperative &nbsp;·&nbsp; 2–4 Players</div>
+
+  <!-- ── Intro ─────────────────────────────────────────── -->
+  <section class="card intro">
+    <h2>The Situation</h2>
+    <p>
+      Four deadly diseases have broken out across the globe, and it's up to a team of
+      specialists to find cures before humanity is wiped out. Pandemic is <b>cooperative</b> —
+      you all win together, or you all lose together. Work as a team, coordinate your roles,
+      and stop the outbreaks before they spiral out of control.
+    </p>
+    <div class="goals">
+      <div class="goal win">
+        <b>◆ How you win</b>
+        Discover cures for all <b>4 diseases</b> (blue, yellow, black, red).
+      </div>
+      <div class="goal lose">
+        <b>◆ How you lose</b>
+        <ul>
+          <li>The 8th outbreak occurs.</li>
+          <li>You can't place a needed disease cube.</li>
+          <li>The player deck runs out.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Settings ──────────────────────────────────────── -->
+  <section class="card">
+    <h2>Game Settings</h2>
+
+    <div class="option-row">
+      <div class="option-label">Players</div>
+      <div class="seg" id="players-seg">
+        <button data-players="2">2 Players<small>4 cards each</small></button>
+        <button data-players="3">3 Players<small>3 cards each</small></button>
+        <button data-players="4">4 Players<small>2 cards each</small></button>
+      </div>
+    </div>
+
+    <div class="option-row">
+      <div class="option-label">Difficulty</div>
+      <div class="seg" id="difficulty-seg">
+        <button data-epidemics="4">Introductory<small>4 epidemics</small></button>
+        <button data-epidemics="5">Standard<small>5 epidemics</small></button>
+        <button data-epidemics="6">Heroic<small>6 epidemics</small></button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Roles ─────────────────────────────────────────── -->
+  <section class="card">
+    <div class="roles-head">
+      <h2 style="border:none; padding:0; margin:0;">Roles</h2>
+      <button class="btn-reshuffle" id="reshuffle-btn">⟳ Reshuffle</button>
+    </div>
+    <div class="role-grid" id="role-grid"></div>
+  </section>
+
+  <div class="start-bar">
+    <button id="start-btn">Start Game →</button>
+  </div>
+
+  <script>
+    // ── The 7 roles ──────────────────────────────────────
+    const ROLES = [
+      { name: "Medic",                color: "#ff7043", ability: "Remove ALL cubes of one color with one Treat action. Automatically removes cubes of cured diseases when entering a city." },
+      { name: "Scientist",            color: "#42a5f5", ability: "Needs only 4 cards of a color (instead of 5) to discover a cure." },
+      { name: "Researcher",           color: "#8d6e63", ability: "Can give any City card to another player in the same city — it need not match the current city." },
+      { name: "Operations Expert",    color: "#26c6da", ability: "Builds a Research Station without discarding a card. Once per turn, moves from a station to any city by discarding any card." },
+      { name: "Dispatcher",           color: "#ec407a", ability: "May move another player's pawn as their own, and may move any pawn to a city containing another pawn." },
+      { name: "Quarantine Specialist",color: "#66bb6a", ability: "Prevents cube placement and outbreaks in their city and all adjacent cities." },
+      { name: "Contingency Planner",  color: "#ab47bc", ability: "May retrieve an Event card from the discard pile and store it on their role card to play later (removed from game when used)." },
+    ];
+
+    // ── State ────────────────────────────────────────────
+    let numPlayers = 2;
+    let numEpidemics = 4;
+    let dealtRoles = [];           // array of role objects, one per player
+    let playerNames = {};          // index -> custom name
+
+    // ── Segmented button groups ──────────────────────────
+    function wireSeg(segId, attr, onPick) {
+      const seg = document.getElementById(segId);
+      seg.querySelectorAll('button').forEach(btn => {
+        btn.addEventListener('click', () => {
+          seg.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          onPick(parseInt(btn.dataset[attr], 10));
+        });
+      });
+    }
+
+    wireSeg('players-seg', 'players', v => { numPlayers = v; dealRoles(); });
+    wireSeg('difficulty-seg', 'epidemics', v => { numEpidemics = v; });
+
+    // ── Deal random roles ────────────────────────────────
+    function shuffle(arr) {
+      const a = arr.slice();
+      for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+      }
+      return a;
+    }
+
+    function dealRoles() {
+      dealtRoles = shuffle(ROLES).slice(0, numPlayers);
+      renderRoles();
+    }
+
+    function renderRoles() {
+      const grid = document.getElementById('role-grid');
+      grid.innerHTML = '';
+      dealtRoles.forEach((role, i) => {
+        const card = document.createElement('div');
+        card.className = 'role-card';
+        card.style.setProperty('--rc', role.color);
+
+        const nameInput = document.createElement('input');
+        nameInput.className = 'player-name';
+        nameInput.value = playerNames[i] || `Player ${i + 1}`;
+        nameInput.maxLength = 24;
+        nameInput.addEventListener('input', () => { playerNames[i] = nameInput.value; });
+
+        const roleName = document.createElement('div');
+        roleName.className = 'role-name';
+        roleName.textContent = role.name;
+
+        const ability = document.createElement('div');
+        ability.className = 'role-ability';
+        ability.textContent = role.ability;
+
+        card.append(nameInput, roleName, ability);
+        grid.appendChild(card);
+      });
+    }
+
+    document.getElementById('reshuffle-btn').addEventListener('click', dealRoles);
+
+    // ── Start game → save settings, go to board ──────────
+    document.getElementById('start-btn').addEventListener('click', () => {
+      const settings = {
+        numPlayers,
+        numEpidemics,
+        difficulty: ({4:'Introductory',5:'Standard',6:'Heroic'})[numEpidemics],
+        infectionRate: 2,
+        outbreaks: 0,
+        players: dealtRoles.map((role, i) => ({
+          name: playerNames[i] || `Player ${i + 1}`,
+          role: role.name,
+          color: role.color,
+        })),
+      };
+      localStorage.setItem('pandemicSettings', JSON.stringify(settings));
+      window.location.href = 'index.html';
+    });
+
+    // ── Defaults on load ─────────────────────────────────
+    document.querySelector('#players-seg button[data-players="2"]').classList.add('active');
+    document.querySelector('#difficulty-seg button[data-epidemics="4"]').classList.add('active');
+    dealRoles();
+  </script>
+</body>
+</html>
