@@ -12,21 +12,29 @@ goes in [`tasks/`](tasks/) as one card per file. State is the directory
 **unassigned** and routed later — see [`tasks/README.md`](tasks/README.md) for the format
 and assignment flow. Board at a glance: `ls tasks/open tasks/working tasks/done`.
 
-## Outstanding Work — snapshot (2026-07-23, vs `origin/main` `bcb39bb`)
+## Outstanding Work — snapshot (updated 2026-07-23 after browser playtest)
 
 The rules **engine is complete** — every mechanic in the build-priority list below
 (MVP → stretch, all 7 roles, all 5 events) is implemented and tested in `rules.js` /
-`cards.js`. What's left is **UI plumbing** in the view/controls files:
+`cards.js`. A full browser playtest ran a game start→loss with **zero console errors**:
+board/pawns/cubes/markers render, drive/actions/draw/epidemic/outbreak-chain/loss and the
+end-game modal all work. What's left is **UI plumbing** in `controls.js`:
 
-| Status | Item | File / Owner | Notes |
+| Status | Item | File / Owner | Tracked |
 |---|---|---|---|
-| ⬜ Open | Pawns not drawn on the board | `render.js` / Abigail | `renderPawns()` is still a stub — the only `TODO(` left in `js/`. Locations are tracked; you just can't see pawns on the map. MVP-visible gap. |
-| ⬜ Open | 7-card hand limit not enforced in UI | `controls.js` / Mike | `Controls.promptDiscard` doesn't exist, so `game.js` falls through when a hand exceeds 7. The engine logs a warning; the UI must force the discard. |
-| ⬜ Open | Event cards unplayable | `controls.js` / Mike | All 5 events work in `rules.js` (`playEvent`) but no button calls them. |
-| ⬜ Open | Role-action buttons missing | `controls.js` / Mike | Ops Expert move, Dispatcher move-to-pawn, and Contingency Planner retrieve exist in `rules.js` but aren't wired to the action bar. |
+| ✅ Done | Pawns drawn on the board (`renderPawns`) | `render.js` / Abigail | — |
+| ✅ Done | Event cards playable — click chip to play | `controls.js` / Andrew | done in `571360a` |
+| 🔴 Open (P0) | 7-card hand limit not enforced — no discard prompt | `controls.js` / **Tae** (was Mike) | `tasks/open/hand-limit-discard-ui.md` |
+| 🟡 Nice-to-have | Role-action buttons (Ops Expert / Dispatcher / Contingency) | `controls.js` / Mike | not filed — `rules.js` has the logic; wiring only |
 
-File these as `tasks/open` cards (routed by the ownership map) so they're tracked — this
-table is the summary; the cards are the work units. Keep it updated as items close.
+The two P0s are the gap between "technically complete" and "feels like real Pandemic."
+Win path uses the same `showEndGame` modal as the confirmed loss path — worth one human
+win-playtest before demo. Keep this table updated as cards close.
+
+> **Handoff (2026-07-23):** Mike left for the airport. Andrew had already landed the
+> event-card UI (`571360a`), so only **one** P0 remains — the hand-limit discard prompt —
+> now picked up by **Tae** (Tae's own `cards.js` is complete). Ownership map above still
+> lists Mike as the original `controls.js` owner for history.
 
 ## The one architectural rule
 
