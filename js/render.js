@@ -123,17 +123,50 @@ const Render = {
     // #token. Offset multiple pawns in the same city so they don't overlap.
   },
 
-  /** Highlight current city + legal drive targets (uses Controls for context). */
+  /** Highlight current city + legal targets for the active pending action. */
   renderCityHighlights() {
     const cur = getCurrentPlayer();
-    const from = cur ? cur.location : 'Atlanta';
+    const from = cur ? cur.location : null;
+    const action = (window.Controls && Controls.pendingAction) || 'drive';
+
+    // Compute the set of legal destination cities for the current action.
+    const validTargets = new Set();
+    if (from && cur) {
+      switch (action) {
+        case 'drive':
+          // Adjacent cities (drive/ferry).
+          getAdjacent(from).forEach(c => validTargets.add(c));
+          break;
+        case 'directFlight':
+          // Any city the player holds a city card for (except current city).
+          cur.hand.forEach(card => {
+            if (card.type === 'city' && card.city !== from) validTargets.add(card.city);
+          });
+          break;
+        case 'charterFlight':
+          // Anywhere — but only if the player holds the current city's card.
+          if (cur.hand.some(c => c.type === 'city' && c.city === from)) {
+            Object.keys(CITIES).forEach(c => { if (c !== from) validTargets.add(c); });
+          }
+          break;
+        case 'shuttleFlight':
+          // Other cities that have research stations.
+          getStations().forEach(c => { if (c !== from) validTargets.add(c); });
+          break;
+        default:
+          getAdjacent(from).forEach(c => validTargets.add(c));
+      }
+    }
+
+    // Apply classes to city nodes.
     this.citiesLayer.querySelectorAll('.city-node').forEach(node => {
       const name = node.dataset.city;
       node.classList.remove('current', 'valid-move');
-      if (name === from) node.classList.add('current');
-      else if (isAdjacent(from, name)) node.classList.add('valid-move');
+      if (name === from)              node.classList.add('current');
+      else if (validTargets.has(name)) node.classList.add('valid-move');
     });
-    // highlight active connection lines
+
+    // Highlight connection lines that touch the current city (drive only).
     this.svg.querySelectorAll('line').forEach(line => {
       line.setAttribute('class', 'conn-normal');
     });
