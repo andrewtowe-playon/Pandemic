@@ -1,11 +1,12 @@
 ---
 title: 7-card hand limit is not enforced in the UI (no discard prompt)
 file: js/controls.js
-owner: Mike
+owner: Tae
 assignee:
 priority: P0
 filed_by: Ryan
 filed: 2026-07-23
+reassigned: 2026-07-23 — Mike → Tae (Mike left for the airport)
 ---
 
 # 7-card hand limit is not enforced in the UI (no discard prompt)
