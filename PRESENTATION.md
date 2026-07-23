@@ -60,10 +60,14 @@ user input  →  Rules.* mutates GameState  →  Render.render() redraws everyth
 - **Docs were infrastructure, not afterthought:** `Rules.md` (authoritative rules),
   `DELEGATION.md` (ownership + live "Outstanding Work" table), `CLAUDE.md` (shared AI
   context — see below).
-- **It survived contact with reality:** when Mike had to leave for the airport mid-build,
-  his remaining work was re-routed via task cards in minutes — Andrew took the event-card
-  UI, Tae took the hand-limit prompt. No lost context, because the context lived in files,
-  not in people's heads.
+- **It survived contact with reality — twice.**
+  - *Hour 1:* two parallel starts collided — the team's single-file board visualizer +
+    setup screen vs. the modular scaffold. Instead of one clobbering the other, they were
+    reconciled: modular architecture kept, the team's board image, hand-calibrated city
+    coordinates, and setup screen folded in. Nothing was lost.
+  - *Hour 3:* Mike had to leave for the airport mid-build. His remaining work was
+    re-routed via task cards in minutes — Andrew took the event-card UI, Tae took the
+    hand-limit prompt. No lost context, because context lived in files, not in heads.
 
 ## 3 · How we used AI (the interesting part)
 
@@ -96,13 +100,18 @@ All five of us ran Claude sessions in parallel against the same repo. The key in
 ## 4 · What we shipped (the numbers)
 
 - **Under 3 hours** from first commit (10:18) to "all tracked items complete" (13:05)
-- **68 commits**, 5 reviewed PRs, zero lost work across ~10 concurrent-push collisions
+- **~70 commits**, 5 reviewed PRs, zero lost work despite constant concurrent pushes
+  (rebase → retest → repush became reflex)
 - **~3,500 lines** of game + test code
 - **64 passing tests** in CI, including a 25-game invariant-checked fuzz
 - **The full game:** all 8 actions · epidemics with correct resolve order · chained
   outbreaks · cures & eradication · **all 7 roles** · **all 5 event cards** · hand-limit
   enforcement · win/loss detection · setup screen · turn summaries · full board UI with
   pawns, cubes, markers, and pile counts
+- **And a kicker:** because rules and flavor are cleanly separated, Tae spec'd a full
+  company re-theme — **"PlayOn: Outage Season"** (incidents instead of diseases, an
+  On-Call SRE instead of a Medic, All-Hands Crises instead of epidemics, win text
+  *"SHIPPED"*) — that's a pure text-swap away, zero mechanic changes.
 
 ## 5 · What we'd tell the next team
 
@@ -127,4 +136,5 @@ All five of us ran Claude sessions in parallel against the same repo. The key in
 4. Point out: pile counts on the board, infection-rate & outbreak markers moving
 5. Dev console (⚙ DEV) — force an epidemic → **chained outbreak** on the board
 6. If time: play an event card; show the hand-limit discard prompt
-7. Close on the CI badge: 64 tests, every push, still green
+7. Close on the GitHub Actions run list: 64 tests on every push, still green — and the
+   "Outage Season" re-theme as where it goes next
