@@ -21,6 +21,14 @@ const OUTBREAK_TRACK = [ // index 0..8, {x,y} in board %
   {x:7.9,y:56.3},{x:11.3,y:60.5},{x:7.8,y:64.5},{x:11.3,y:68.5},{x:7.8,y:72.4},
   {x:11.3,y:76.4},{x:7.8,y:80.4},{x:11.3,y:84.3},{x:7.7,y:88.3},
 ];
+// Cure markers: 4 disease-symbol slots at bottom-center, calibrated to Board.webp.
+const CURE_MARKERS = [ // slot per color (uncured start), {color,x,y} board %
+  {color:'yellow', x:34.0, y:93.4},
+  {color:'red',    x:38.4, y:93.4},
+  {color:'blue',   x:42.9, y:93.4},
+  {color:'black',  x:47.3, y:93.4},
+];
+const CURE_RAISED_DY = 6.4; // board % a cured/eradicated marker rises above its slot.
 
 const Render = {
   svg: null,
@@ -45,6 +53,7 @@ const Render = {
     this.renderCubes();
     this.renderStations();
     this.renderTrackMarkers();
+    this.renderCureMarkers();
     this.renderPawns();
     this.renderCityHighlights();
     if (window.Controls && Controls.renderPanels) Controls.renderPanels();
@@ -152,6 +161,28 @@ const Render = {
     this.markerLayer.appendChild(mk(ob.x, ob.y,
       `Outbreaks: ${GameState.outbreaks}/${MAX_OUTBREAKS}`));
   },
+
+  /** Cure marker per color: on its slot when uncured, raised when cured, raised with
+   *  an ✕ when eradicated. Always visible. */
+  renderCureMarkers() {
+    CURE_MARKERS.forEach(({ color, x, y }) => {
+      const status = GameState.cures[color] || CURE.UNCURED;
+      const cured = status === CURE.CURED;
+      const eradicated = status === CURE.ERADICATED;
+      const my = (cured || eradicated) ? y - CURE_RAISED_DY : y; // cured/eradicated rise above the slot
+      const m = document.createElement('div');
+      m.title = `${color}: ${status}`;
+      m.textContent = eradicated ? '✕' : '';
+      m.style.cssText =
+        'position:absolute; width:16px; height:16px; border-radius:50%;' +
+        `left:${x}%; top:${my}%; transform:translate(-50%,-50%);` +
+        `background:${COLOR_HEX[color]}; border:2px solid ${eradicated ? 'gold' : '#fff'};` +
+        'color:#000; font-size:12px; font-weight:bold; line-height:14px; text-align:center;' +
+        'box-shadow:0 0 4px #000; pointer-events:none;';
+      this.markerLayer.appendChild(m);
+    });
+  },
+
 
   /** Draw one pawn per player at their location (offset when co-located). */
   renderPawns() {
