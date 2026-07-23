@@ -29,6 +29,14 @@ const CURE_MARKERS = [ // slot per color (uncured start), {color,x,y} board %
   {color:'black',  x:47.3, y:93.4},
 ];
 const CURE_RAISED_DY = 6.4; // board % a cured/eradicated marker rises above its slot.
+// Card-count badges: one per pile, centered on its printed square on Board.webp.
+// key = GameState array to count. x/y in board % — TUNE against the image.
+const PILES = [
+  { key: 'infectionDeck',    x: 67.0, y: 9.5,  label: 'Infection draw pile' },
+  { key: 'infectionDiscard', x: 81.5, y: 9.5,  label: 'Infection discard pile' },
+  { key: 'playerDeck',       x: 65.0, y: 82.0, label: 'Player draw pile' },
+  { key: 'playerDiscard',    x: 75.5, y: 82.0, label: 'Player discard pile' },
+];
 
 const Render = {
   svg: null,
@@ -54,6 +62,7 @@ const Render = {
     this.renderStations();
     this.renderTrackMarkers();
     this.renderCureMarkers();
+    this.renderPileCounts();
     this.renderPawns();
     this.renderCityHighlights();
     if (window.Controls && Controls.renderPanels) Controls.renderPanels();
@@ -183,6 +192,27 @@ const Render = {
     });
   },
 
+
+  /** Small card-count badge on each deck/discard pile (draw + discard, both
+   *  infection and player). Appended to markerLayer AFTER renderTrackMarkers
+   *  (which clears it). */
+  renderPileCounts() {
+    const CARD = '<svg viewBox="0 0 24 24" width="11" height="11" fill="currentColor" ' +
+      'style="opacity:0.9;flex:none"><path d="M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zm0 2v14h14V5H5z"/></svg>';
+    PILES.forEach(p => {
+      const count = (GameState[p.key] || []).length;
+      const el = document.createElement('div');
+      el.title = `${p.label}: ${count} card${count === 1 ? '' : 's'}`;
+      el.style.cssText =
+        `position:absolute; left:${p.x}%; top:${p.y}%; transform:translate(-50%,-50%);` +
+        'display:flex; align-items:center; gap:3px; padding:1px 5px 1px 4px;' +
+        'background:rgba(4,6,20,0.78); border:1px solid rgba(255,255,255,0.4); border-radius:9px;' +
+        'color:#fff; font:bold 11px/1 Consolas,monospace; pointer-events:none;' +
+        'box-shadow:0 0 5px #000; white-space:nowrap;';
+      el.innerHTML = `${CARD}<span>${count}</span>`;
+      this.markerLayer.appendChild(el);
+    });
+  },
 
   /** Draw one pawn per player at their location (offset when co-located). */
   renderPawns() {
