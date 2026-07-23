@@ -27,11 +27,10 @@ end-game modal all work. What's left is **UI plumbing** in `controls.js`:
 | ✅ Done | Contingency Planner UI — Retrieve Event button + stored card chip | `controls.js` / Andrew | `1d2ac91` |
 | ✅ Done | Turn-end summary popup (player cards + infection cards drawn) | `game.js`+`controls.js` / Andrew | `56ea50b` |
 | ✅ Done | All-players panel populates on load | `playerPanel.js` / Andrew | `e89b831` |
-| 🔴 Open (P0) | 7-card hand limit not enforced — no discard prompt | `controls.js` / **Tae** (was Mike) | `tasks/open/hand-limit-discard-ui.md` |
+| ✅ Done | 7-card hand limit discard prompt (draw phase + post-Share) | `controls.js` / Andrew | `ee655ae` |
 | ✅ Done | Role-action buttons (Ops Expert Move + Dispatcher pawn-to-pawn) | `controls.js` / Andrew | `7b158c1` |
 
-The remaining P0 is the gap between "technically complete" and "feels like real Pandemic."
-Keep this table updated as cards close.
+All tracked items are now complete. Keep this table updated if new gaps are found.
 
 > **Handoff (2026-07-23):** Mike left for the airport. Andrew picked up event-card UI,
 > CP wiring, and the turn-summary popup. Only one P0 remains — the hand-limit discard
