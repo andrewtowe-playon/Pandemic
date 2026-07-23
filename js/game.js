@@ -77,6 +77,8 @@ const Game = {
         role: (roles && roles[i]) || '',
         location: 'Atlanta',
         hand: [],
+        storedEvent: null,    // Contingency Planner only
+        usedOpsMove: false,   // Operations Expert only; reset each turn
       });
     }
     GameState.currentPlayerIndex = 0;
@@ -167,6 +169,7 @@ const Game = {
     GameState.currentPlayerIndex = (GameState.currentPlayerIndex + 1) % GameState.players.length;
     GameState.actionsRemaining = 4;
     GameState.phase = PHASE.ACTIONS;
+    GameState.players.forEach(p => { p.usedOpsMove = false; }); // Ops Expert 1/turn reset
     logEvent(`${getCurrentPlayer().name}'s turn.`);
     this._updateStatusBar();
     Render.render();

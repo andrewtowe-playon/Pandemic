@@ -169,7 +169,7 @@ multiple outbreaks.
 
 | Role | Special Ability |
 |---|---|
-| **Medic** | Treat Disease removes **all** cubes of one color at once (not just 1). Additionally, cubes of any **cured** disease are removed **automatically** (no action) from the Medic's city whenever they enter it or are already there. |
+| **Medic** | Treat Disease removes **all** cubes of one color at once (not just 1). Additionally, cubes of any **cured** disease are removed **automatically** (no action) from the Medic's city whenever they enter it, are already there, or the cure is discovered while they're there. The Medic also **prevents** cubes of cured diseases from being placed in their city (during infections and outbreak spread). |
 | **Scientist** | Needs only **4** same-color cards (instead of 5) to Discover a Cure. |
 | **Researcher** | When sharing knowledge, may **give any** City card from their hand (not just the matching one) to a player in the same city. Still must be in the same city; taking still uses an action by the taker. |
 | **Operations Expert** | May Build a Research Station **without discarding** a card. **Once per turn**, may move from a research station to any city by **discarding any City card**. |
