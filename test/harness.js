@@ -87,6 +87,15 @@ function loadGame(opts) {
   // button clicks). Tests verify game logic, not modal rendering.
   if (sandbox.Controls) {
     sandbox.Controls.showTurnSummary = function(_pc, _ep, _ic, onContinue) { onContinue(); };
+    // Auto-discard to hand limit so the turn cycle keeps running headlessly.
+    sandbox.Controls.promptDiscard = function(player, onDone) {
+      while (player.hand.length > sandbox.HAND_LIMIT) {
+        const card = player.hand.shift();
+        sandbox.GameState.playerDiscard.push(card);
+      }
+      if (onDone) onDone();
+      else if (sandbox.Game && sandbox.Game.runInfectPhase) sandbox.Game.runInfectPhase();
+    };
   }
   return sandbox;
 }

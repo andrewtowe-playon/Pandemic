@@ -303,6 +303,17 @@ const Controls = {
     if (others.length === 0) return this.toast('No other player in this city');
 
     const options = [];
+    // Helper: run share, then prompt the receiver if they're over the limit.
+    const doShare = (from, to, card) => {
+      const result = Rules.shareKnowledge(from, to, card);
+      if (!result.ok) { this.toast(result.reason); return; }
+      this._clearChoice();
+      Render.render();
+      if (window.Game && Game.checkActionsExhausted) Game.checkActionsExhausted();
+      if (to.hand.length > HAND_LIMIT)
+        this.promptDiscard(to, () => Render.render());
+    };
+
     // GIVE: current player -> another (Researcher may give any city card).
     others.forEach(other => {
       player.hand.forEach(card => {
@@ -310,7 +321,7 @@ const Controls = {
         if (player.role === 'Researcher' || card.city === city) {
           options.push({
             label: `Give ${card.city} → ${other.name}`,
-            onClick: () => this._act(Rules.shareKnowledge(player, other, card)),
+            onClick: () => doShare(player, other, card),
           });
         }
       });
@@ -322,7 +333,7 @@ const Controls = {
         if (other.role === 'Researcher' || card.city === city) {
           options.push({
             label: `Take ${card.city} ← ${other.name}`,
-            onClick: () => this._act(Rules.shareKnowledge(other, player, card)),
+            onClick: () => doShare(other, player, card),
           });
         }
       });
@@ -678,6 +689,79 @@ const Controls = {
     box.appendChild(btn);
 
     modal.classList.add('show');
+  },
+
+  /** Hand-limit enforcement. Show a modal listing the player's hand; clicking
+   *  a card discards it. When the hand is legal (≤7), call onDone().
+   *  onDone defaults to Game.runInfectPhase (the draw-phase hook). Pass a
+   *  custom callback for other callers (e.g. post-Share). */
+  promptDiscard(player, onDone) {
+    const resume = onDone || (() => { if (window.Game && Game.runInfectPhase) Game.runInfectPhase(); });
+    const modal = document.getElementById('modal');
+    const box   = document.getElementById('modal-box');
+    if (!modal || !box) { resume(); return; }
+
+    const renderModal = () => {
+      box.innerHTML = '';
+
+      const title = document.createElement('h2');
+      title.textContent = 'Hand Limit Exceeded';
+      title.style.cssText = 'letter-spacing:3px;color:#f88;margin-bottom:8px;';
+      box.appendChild(title);
+
+      const over = player.hand.length - HAND_LIMIT;
+      const sub = document.createElement('p');
+      sub.style.cssText = 'color:#aab;font-size:0.82rem;margin-bottom:14px;';
+      sub.textContent =
+        `${player.name} has ${player.hand.length} cards — discard ${over} to continue.`;
+      box.appendChild(sub);
+
+      const grid = document.createElement('div');
+      grid.style.cssText =
+        'display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px;justify-content:center;';
+
+      player.hand.forEach(card => {
+        const chip = document.createElement('button');
+        chip.style.cssText =
+          'padding:5px 10px;border-radius:4px;font-size:0.78rem;cursor:pointer;' +
+          'border:1px solid rgba(255,255,255,0.3);';
+        if (card.type === 'city') {
+          chip.style.background = COLOR_HEX[card.color];
+          chip.style.color = '#000';
+          chip.textContent = card.city;
+        } else if (card.type === 'event') {
+          chip.style.background = '#2a2050';
+          chip.style.color = '#e8d9ff';
+          chip.textContent = `★ ${card.name}`;
+        } else {
+          chip.style.background = '#555';
+          chip.style.color = '#fa0';
+          chip.textContent = card.type;
+        }
+        chip.title = 'Click to discard this card';
+        chip.addEventListener('click', () => {
+          const idx = player.hand.indexOf(card);
+          if (idx !== -1) {
+            player.hand.splice(idx, 1);
+            GameState.playerDiscard.push(card);
+            logEvent(`${player.name} discarded ${card.type === 'city' ? card.city : card.name} (hand limit)`);
+          }
+          Render.render();
+          if (player.hand.length <= HAND_LIMIT) {
+            modal.classList.remove('show');
+            resume();
+          } else {
+            renderModal();
+          }
+        });
+        grid.appendChild(chip);
+      });
+
+      box.appendChild(grid);
+      modal.classList.add('show');
+    };
+
+    renderModal();
   },
 
   /** Win/lose modal. Call when GameState.phase becomes WON or LOST. */
