@@ -22,7 +22,7 @@ function runRulesAuditTests() {
     const g = fresh();
     const p = g.getCurrentPlayer();
     const grant = { type: 'event', name: 'Government Grant' };
-    p.hand.push(grant);
+    p.hand = [grant]; // isolate: exactly one Government Grant (a dealt hand may contain one)
     const r = g.Rules.playEvent(p, 'Government Grant', { city: 'Atlanta' }); // Atlanta already has a station
     check('B1: invalid Government Grant rejected', r.ok === false);
     check('B1: event card NOT consumed on invalid play', p.hand.includes(grant));
@@ -35,7 +35,7 @@ function runRulesAuditTests() {
   {
     const g = fresh();
     const p = g.getCurrentPlayer();
-    p.hand.push({ type: 'event', name: 'Forecast' });
+    p.hand = [{ type: 'event', name: 'Forecast' }]; // isolate (dealt hand may also contain Forecast)
     const before = g.GameState.infectionDeck.map(c => c.city);
     const fake = Array.from({ length: 6 }, () => ({ city: 'Atlanta', color: 'blue' }));
     const r = g.Rules.playEvent(p, 'Forecast', { newOrder: fake });
