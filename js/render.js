@@ -118,9 +118,38 @@ const Render = {
 
   /** Draw one pawn per player at their location (offset when co-located). */
   renderPawns() {
-    // TODO(Abigail): render GameState.players[]. Color by ROLES[role].color.
-    // Highlight the current player (getCurrentPlayer()). Replace the old single
-    // #token. Offset multiple pawns in the same city so they don't overlap.
+    this.pawnLayer.innerHTML = '';
+    const cur = getCurrentPlayer();
+
+    // group player indices by city so co-located pawns can be fanned out
+    const byCity = {};
+    GameState.players.forEach((p, i) => (byCity[p.location] ||= []).push(i));
+
+    GameState.players.forEach((p, i) => {
+      const city = CITIES[p.location];
+      if (!city) return;
+      const group = byCity[p.location];
+      const slot = group.indexOf(i);
+      // west zone: sit left of the dot (clear of cubes/station/label), fan vertically
+      const dx = -14;
+      const dy = (slot - (group.length - 1) / 2) * 14;
+      const shift = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
+
+      const pawn = document.createElement('div');
+      pawn.title = `${p.name} — ${p.role}`;
+      pawn.style.cssText =
+        'position:absolute; width:14px; height:14px; border-radius:50%;' +
+        `left:${city.x}%; top:${city.y}%;` +
+        `transform:${shift};` +
+        `background:${(ROLES[p.role] && ROLES[p.role].color) || '#fff'};` +
+        'border:2px solid rgba(0,0,0,0.6); pointer-events:none;';
+      if (p === cur) {
+        pawn.style.borderColor = 'gold';
+        pawn.style.boxShadow = '0 0 10px gold, 0 0 4px #ffa';
+        pawn.style.transform = `${shift} scale(1.2)`;
+      }
+      this.pawnLayer.appendChild(pawn);
+    });
   },
 
   /** Highlight current city + legal drive targets (uses Controls for context). */
