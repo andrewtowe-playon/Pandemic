@@ -29,12 +29,12 @@ user input  ->  Rules.* (or setup) mutates GameState  ->  Render.render()
 
 | File | Owner | What it does |
 |---|---|---|
-| `js/state.js` | **Andrew** | Constants + the `GameState` contract + pure helpers. **Frozen at 0:30** — additive changes only after. |
-| `js/rules.js` | **Andrew** | The rules engine: all actions, draw/epidemic/infect, outbreak chains, eradication, win/lose. |
+| `js/state.js` | **Andrew** | Constants + the `GameState` contract + pure helpers. **Frozen at 0:30** — additive changes only after. | - Done
+| `js/rules.js` | **Andrew** | The rules engine: all actions, draw/epidemic/infect, outbreak chains, eradication, win/lose. | - Done
 | `js/game.js` | **Ryan** | Setup + turn cycle orchestration (ACTIONS → DRAW → INFECT → next player). Glue only. |
 | `js/render.js` | **Abigail** | Board rendering: cubes, stations, pawns, markers, highlights. |
 | `js/cards.js` | **Tae** | Both decks: build, shuffle, deal, seed infections, epidemic intensify. |
-| `js/controls.js` | **Mike** | Sidebar UI, action buttons, hand, turn buttons, toasts, win/lose modal. |
+| `js/controls.js` | **Mike** | Sidebar UI, action buttons, hand, turn buttons, toasts, win/lose modal. | - Done
 
 `index.html` holds the DOM containers + loads scripts in dependency order. Coordinate any
 edit to it (it's the only shared-ish file besides `state.js`).
