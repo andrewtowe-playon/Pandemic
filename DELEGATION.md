@@ -23,18 +23,20 @@ end-game modal all work. What's left is **UI plumbing** in `controls.js`:
 | Status | Item | File / Owner | Tracked |
 |---|---|---|---|
 | ✅ Done | Pawns drawn on the board (`renderPawns`) | `render.js` / Abigail | — |
-| ✅ Done | Event cards playable — click chip to play | `controls.js` / Andrew | done in `571360a` |
+| ✅ Done | Event cards playable — click chip to play | `controls.js` / Andrew | `571360a` |
+| ✅ Done | Contingency Planner UI — Retrieve Event button + stored card chip | `controls.js` / Andrew | `1d2ac91` |
+| ✅ Done | Turn-end summary popup (player cards + infection cards drawn) | `game.js`+`controls.js` / Andrew | `56ea50b` |
+| ✅ Done | All-players panel populates on load | `playerPanel.js` / Andrew | `e89b831` |
 | 🔴 Open (P0) | 7-card hand limit not enforced — no discard prompt | `controls.js` / **Tae** (was Mike) | `tasks/open/hand-limit-discard-ui.md` |
-| 🟡 Nice-to-have | Role-action buttons (Ops Expert / Dispatcher / Contingency) | `controls.js` / Mike | not filed — `rules.js` has the logic; wiring only |
+| 🟡 Nice-to-have | Role-action buttons (Ops Expert / Dispatcher) | `controls.js` / Mike | not filed — `rules.js` has the logic; wiring only |
 
-The two P0s are the gap between "technically complete" and "feels like real Pandemic."
-Win path uses the same `showEndGame` modal as the confirmed loss path — worth one human
-win-playtest before demo. Keep this table updated as cards close.
+The remaining P0 is the gap between "technically complete" and "feels like real Pandemic."
+Keep this table updated as cards close.
 
-> **Handoff (2026-07-23):** Mike left for the airport. Andrew had already landed the
-> event-card UI (`571360a`), so only **one** P0 remains — the hand-limit discard prompt —
-> now picked up by **Tae** (Tae's own `cards.js` is complete). Ownership map above still
-> lists Mike as the original `controls.js` owner for history.
+> **Handoff (2026-07-23):** Mike left for the airport. Andrew picked up event-card UI,
+> CP wiring, and the turn-summary popup. Only one P0 remains — the hand-limit discard
+> prompt — now picked up by **Tae** (Tae's own `cards.js` is complete). Ownership map
+> above still lists Mike as the original `controls.js` owner for history.
 
 ## The one architectural rule
 
