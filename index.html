@@ -146,10 +146,14 @@
     #action-buttons button.active .pill-icon { color: #cfe6ff; }
     /* The contextual sub-choice row spans the full grid width. */
     #action-buttons #action-choice { grid-column: 1 / -1; }
+    #turn-buttons { margin: 10px 0; }
     #turn-buttons button {
-      margin: 2px; padding: 6px 12px; font-size: 0.8rem; cursor: pointer;
+      width: 100%; padding: 10px; font-size: 0.9rem; font-weight: bold; cursor: pointer;
+      letter-spacing: 1px;
       background: #16224a; color: #cce; border: 1px solid #335; border-radius: 6px;
     }
+    #turn-buttons button:hover { background: #1d2c5c; border-color: #6af; }
+    #turn-buttons button:disabled { opacity: 0.5; cursor: default; }
     #log { font-size: 0.72rem; color: #99b; max-height: 160px; overflow-y: auto; }
 
     /* ── dev console ─────────────────────────────────────────────────── */
@@ -252,18 +256,17 @@
       <h2>HAND</h2>
       <div id="hand"></div>
 
-      <h2>TURN</h2>
-      <div id="turn-buttons"><!-- Draw / End turn --></div>
+      <div id="turn-buttons"><!-- End Turn (full-width, no header) --></div>
 
       <h2>DISEASES</h2>
       <div id="cure-status"></div>
 
-      <h2>LOG</h2>
-      <div id="log"></div>
-
       <!-- ALL PLAYERS OVERVIEW -->
       <h2>ALL PLAYERS</h2>
       <div id="all-players-panel"></div>
+
+      <h2>LOG</h2>
+      <div id="log"></div>
 
       <!-- DEV CONSOLE -->
       <div id="dev-section">
