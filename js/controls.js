@@ -103,10 +103,10 @@ const Controls = {
 
     // Immediate actions: act on the current city right now.
     const IMMEDIATE = [
-      ['Treat',         'plus',     () => this._doTreat()],
-      ['Build Station', 'building', () => this._doBuild()],
-      ['Discover Cure', 'flask',    () => this._doCure()],
-      ['Share',         'exchange', () => this._doShare()],
+      ['Resolve',       'plus',     () => this._doTreat()],
+      ['Open Office',   'building', () => this._doBuild()],
+      ['Ship Solution', 'flask',    () => this._doCure()],
+      ['Hand Off',      'exchange', () => this._doShare()],
     ];
     IMMEDIATE.forEach(([label, icon, fn]) => {
       const b = this._makePill(icon, label);
@@ -181,10 +181,10 @@ const Controls = {
     if (!this._ensureActionable()) return;
     const city = GameState.cities[player.location];
     const present = COLORS.filter(c => city.cubes[c] > 0);
-    if (present.length === 0) return this.toast('No cubes to treat here');
+    if (present.length === 0) return this.toast('No incidents to resolve here');
     if (present.length === 1) return this._act(Rules.treatDisease(player, present[0]));
-    this._showChoice('Treat which color?', present.map(c => ({
-      label: c, color: COLOR_HEX[c],
+    this._showChoice('Resolve which domain?', present.map(c => ({
+      label: THEME.domain(c), color: COLOR_HEX[c],
       onClick: () => this._act(Rules.treatDisease(player, c)),
     })));
   },
@@ -206,13 +206,13 @@ const Controls = {
       byColor[c].length >= needed && GameState.cures[c] === CURE.UNCURED);
 
     if (curable.length === 0)
-      return this.toast(`Need ${needed} same-color city cards at a station`);
+      return this.toast(`Need ${needed} matching tickets at an office`);
 
     const cure = (c) =>
       this._act(Rules.discoverCure(player, c, byColor[c].slice(0, needed)));
     if (curable.length === 1) return cure(curable[0]);
-    this._showChoice('Cure which color?', curable.map(c => ({
-      label: c, color: COLOR_HEX[c], onClick: () => cure(c),
+    this._showChoice('Ship which domain?', curable.map(c => ({
+      label: THEME.domain(c), color: COLOR_HEX[c], onClick: () => cure(c),
     })));
   },
 
@@ -452,7 +452,7 @@ const Controls = {
   /** Header status bar: whose turn, actions left, infection rate, outbreaks. */
   _renderStatusBar() {
     const player = getCurrentPlayer();
-    this._setText('s-player', player ? player.name : '—');
+    this._setText('s-player', player ? THEME.roleLabel(player.role) : '—');
     this._setText('s-actions',
       GameState.phase === PHASE.ACTIONS ? GameState.actionsRemaining : '—');
     this._setText('s-rate', getInfectionRate());
@@ -466,25 +466,21 @@ const Controls = {
     const player = getCurrentPlayer();
     if (!player) { box.textContent = '—'; return; }
 
-    const role = ROLES[player.role] || { color: '#cce', blurb: '' };
+    const role = ROLES[player.role] || { color: '#cce' };
     box.innerHTML = '';
 
     const name = document.createElement('div');
     name.style.fontSize = '0.95rem';
-    name.innerHTML = `<strong style="color:${role.color}">${player.name}</strong>` +
+    name.innerHTML = `<strong style="color:${role.color}">${THEME.roleLabel(player.role)}</strong>` +
                      ` <span style="color:#889">@ ${player.location}</span>`;
-
-    const roleLine = document.createElement('div');
-    roleLine.style.color = role.color;
-    roleLine.style.margin = '2px 0';
-    roleLine.textContent = player.role;
 
     const blurb = document.createElement('div');
     blurb.style.color = '#889';
     blurb.style.fontSize = '0.72rem';
-    blurb.textContent = role.blurb;
+    blurb.style.marginTop = '2px';
+    blurb.textContent = THEME.roleBlurb(player.role);
 
-    box.append(name, roleLine, blurb);
+    box.append(name, blurb);
   },
 
   /** The current player's hand as color-coded chips. */

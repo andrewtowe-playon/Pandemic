@@ -11,7 +11,7 @@ const vm = require('vm');
 const path = require('path');
 
 const JS_DIR = path.join(__dirname, '..', 'js');
-const LOAD_ORDER = ['state', 'cards', 'rules', 'render', 'controls', 'game'];
+const LOAD_ORDER = ['state', 'theme', 'cards', 'rules', 'render', 'controls', 'game'];
 
 const DEFAULT_SEED = 0x9e3779b9; // fixed seed → deterministic scenario tests
 
