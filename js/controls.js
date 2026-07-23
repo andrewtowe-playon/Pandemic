@@ -88,10 +88,10 @@ const Controls = {
     this._moveButtons = {};
 
     const MOVES = [
-      ['drive',         'Drive/Ferry',    'nav'],
-      ['directFlight',  'Direct Flight',  'plane'],
-      ['charterFlight', 'Charter Flight', 'send'],
-      ['shuttleFlight', 'Shuttle Flight', 'bus'],
+      ['drive',         'Commute',        'nav'],
+      ['directFlight',  'Fly Out',        'plane'],
+      ['charterFlight', 'Charter',        'send'],
+      ['shuttleFlight', 'Office Shuttle', 'bus'],
     ];
     MOVES.forEach(([key, label, icon]) => {
       const b = this._makePill(icon, label);
@@ -116,7 +116,7 @@ const Controls = {
     });
 
     // Contingency Planner role button (hidden for other roles).
-    const cpBtn = this._makePill('download', 'Retrieve Event');
+    const cpBtn = this._makePill('download', 'Bank Initiative');
     cpBtn.title = 'Contingency Planner: take an event from the discard pile (1 action)';
     cpBtn.style.display = 'none';
     cpBtn.addEventListener('click', () => this._doRetrieve());
@@ -124,7 +124,7 @@ const Controls = {
     this._cpBtn = cpBtn;
 
     // Operations Expert role button (hidden for other roles).
-    const opsBtn = this._makePill('zap', 'OpsExpert Move');
+    const opsBtn = this._makePill('zap', 'Deploy Anywhere');
     opsBtn.title = 'Operations Expert: move from a station to any city by discarding any city card (once/turn)';
     opsBtn.style.display = 'none';
     opsBtn.addEventListener('click', () => this._doOpsMove());
@@ -132,7 +132,7 @@ const Controls = {
     this._opsBtn = opsBtn;
 
     // Dispatcher role button (hidden for other roles).
-    const dispBtn = this._makePill('people', 'Move Pawn to Pawn');
+    const dispBtn = this._makePill('people', 'Reassign');
     dispBtn.title = 'Dispatcher: move any pawn to a city containing another pawn (1 action)';
     dispBtn.style.display = 'none';
     dispBtn.addEventListener('click', () => this._doDispatchPawnToPawn());
